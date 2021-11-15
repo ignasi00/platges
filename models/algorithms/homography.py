@@ -116,9 +116,9 @@ class BasicStitching():
 
         return h
 
-    def forward(self, x, verbose=False, plot=True):
+    def forward(self, x, verbose=False, plot=True, descriptor_arg2=None):
         # find points of interestand its descriptors
-        kp, des = zip(*[self.descriptor(img, None) for img in x])
+        kp, des = zip(*[self.descriptor(img, descriptor_arg2) for img in x])
         
         # find homography matrix and number of consistent matches
         H, n_matches, matches = self._find_all_homographies(kp, des, verbose=verbose)
