@@ -119,7 +119,7 @@ class Platges_DronHomographyDataset(Dataset):
             if self.to_tensor is not None:
                 images[i] = self.to_tensor(image=images[i])['image']
             # downsample TODO: improve style
-            if self.downsample is not None:
+            if self.downsample is not None and self.downsample != 1:
                 images[i] = cv2.resize(images[i], (images[i].shape[0] // self.downsample, images[i].shape[1] // self.downsample), interpolation=cv2.INTER_AREA)
 
         return images, meta

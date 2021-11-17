@@ -118,13 +118,17 @@ class BasicStitching():
 
     def forward(self, x, verbose=False, plot=True, descriptor_arg2=None):
         # find points of interestand its descriptors
-        kp, des = zip(*[self.descriptor(img, descriptor_arg2) for img in x])
-        
+        if hasattr(descriptor_arg2, '__len__') and len(x) == len(descriptor_arg2):
+            y = zip(x, descriptor_arg2)
+        else:
+            y = zip(x, [descriptor_arg2] * len(x))
+        kp, des = zip(*[self.descriptor(img, arg2) for img, arg2 in y])
+
         # find homography matrix and number of consistent matches
         H, n_matches, matches = self._find_all_homographies(kp, des, verbose=verbose)
 
         # Stitch as much images over the base_idx image plane as posible
-        base_idx = 0
+        base_idx = len(x) - 1
         composed_img = x[base_idx].copy()
 
         # Translation of the base plane from previous stiched images
@@ -137,8 +141,9 @@ class BasicStitching():
             if verbose and plot : self._plot_matches(x, kp, matches, current_idxs)
 
             # 1- compute the homography matrix for the current image (chained homographies with previous translations)
-            homography_matrix = translation * self._compute_path_homography(current_idxs, H)
+            homography_matrix = self._compute_path_homography(current_idxs, H)
             if homography_matrix is None : break
+            homography_matrix = translation * homography_matrix
 
             # 2- compute the new dimensions
             max_x, min_x, max_y, min_y = self._compute_dimensions(composed_img, current_img, homography_matrix)
@@ -212,7 +217,7 @@ class BasicStitching():
                 dpi = h.figure.get_dpi()/size
                 h.figure.set_figwidth(img.shape[1] / dpi)
                 h.figure.set_figheight(img.shape[0] / dpi)
-                h.figure.canvas.resize(img.shape[1] + 1, img.shape[0] + 1)
+                #h.figure.canvas.resize(img.shape[1] + 1, img.shape[0] + 1)
                 h.axes.set_position([0, 0, 1, 1])
                 if show_axis:
                     h.axes.set_xlim(-1, img.shape[1])
@@ -221,43 +226,6 @@ class BasicStitching():
             plt.title(title)  
             plt.show()
 
-        # Function to display 2 images side by side
-        def display_images(ima1, ima2, title1='', title2='', size=None, show_axis=False, hsep=0.1):
-            fig, ax = plt.subplots(1,2)
-            plt.grid(False)
-            h = ax[0].imshow(ima1.astype(np.uint8), cmap=plt.cm.gray)
-            ax[0].set_title(title1)
-
-            if size:
-                dpi = h.figure.get_dpi()/size
-                h.figure.set_figwidth(ima1.shape[1] / dpi)
-                h.figure.set_figheight(ima1.shape[0] / dpi)
-                h.figure.canvas.resize(ima1.shape[1] + 1, ima1.shape[0] + 1)
-                h.axes.set_position([0, 0, 1, 1])
-
-            if not show_axis:
-                ax[0].axis('off')
-            else: 
-                ax[0].axes.set_xlim(-1, ima1.shape[1])
-                ax[0].axes.set_ylim(ima1.shape[0], -1)
-
-            h = ax[1].imshow(ima2.astype(np.uint8), cmap=plt.cm.gray)
-            ax[1].set_title(title2)
-
-            if size:
-                dpi = h.figure.get_dpi()/size
-                h.figure.set_figwidth(ima2.shape[1] / dpi)
-                h.figure.set_figheight(ima2.shape[0] / dpi)
-                h.figure.canvas.resize(ima2.shape[1] + 1, ima2.shape[0] + 1)
-                h.axes.set_position([1+hsep, 0, 1, 1])
-
-            if not show_axis:
-                ax[1].axis('off')
-            else: 
-                ax[1].axes.set_xlim(-1, ima2.shape[1])
-                ax[1].axes.set_ylim(ima2.shape[0], -1)
-
-            plt.show()
-
         display_image(img12, 'matches', size=1)
         input()
+
