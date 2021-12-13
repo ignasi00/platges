@@ -100,11 +100,13 @@ class Platges_DronHomographyDataset(Dataset):
 
         return pandas_table
 
-    def __init__(self, folder_path, to_tensor=True, downsample=None, cluster=True, th_time=60, longitude_bin_size=0.05, latitude_bin_size=0.05, min_per_bin=1):
+    def __init__(self, folder_path, to_tensor=True, downsample=None, cluster=True, th_time=60, longitude_bin_size=0.05, latitude_bin_size=0.05, min_per_bin=1, read_flag=0):
         list_of_items = self._list_metadata(folder_path, cluster=cluster)
         self.table_of_items = pd.DataFrame(list_of_items)
         if cluster : self.table_of_items = self._cluster_images(self.table_of_items, th_time=th_time, min_per_bin=min_per_bin)
         
+        self.read_flag = read_flag
+
         self.to_tensor = A.Compose([ToTensor()]) if to_tensor else None
         self.downsample = downsample
 
@@ -114,13 +116,13 @@ class Platges_DronHomographyDataset(Dataset):
         images = [None] * len(meta)
         for i, dict_ in enumerate(meta):
             # TODO: read in color
-            images[i] = cv2.imread(dict_[PATH], 0)
-            # TODO: Color BGR to RGB if needed/works
-            if self.to_tensor is not None:
-                images[i] = self.to_tensor(image=images[i])['image']
+            images[i] = cv2.imread(dict_[PATH], self.read_flag)
             # downsample TODO: improve style
             if self.downsample is not None and self.downsample != 1:
                 images[i] = cv2.resize(images[i], (images[i].shape[0] // self.downsample, images[i].shape[1] // self.downsample), interpolation=cv2.INTER_AREA)
+            # TODO: Color BGR to RGB if needed/works
+            if self.to_tensor is not None:
+                images[i] = self.to_tensor(image=images[i])['image']
 
         return images, meta
 
