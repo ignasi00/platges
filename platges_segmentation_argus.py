@@ -187,7 +187,7 @@ if __name__ == "__main__":
     min_mIoU = np.min(v_mIoU)
     max_mIoU = np.max(v_mIoU)
 
-    print(f'mean_mIou: {mean_mIoU}')
+    print(f'\n----\n\nmean_mIou: {mean_mIoU}')
     print(f'min_mIou: {min_mIoU}')
     print(f'max_mIou: {max_mIoU}')
 
