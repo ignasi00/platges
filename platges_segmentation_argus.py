@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
             if colors is not None:
                 seg_img_col = colorize(seg_img, colors)
-                cv2.imwrite(save_path_seg, seg_img_col)
+                seg_img_col.convert('RGB').save(save_path_seg)
                 img_with_seg = cv2.addWeighted(np.transpose(img.numpy(), (1, 2, 0)), 1-ALPHA, np.array(seg_img_col.convert('RGB')), ALPHA, 0.0)
                 cv2.imwrite(save_path_ovr, img_with_seg)
 
