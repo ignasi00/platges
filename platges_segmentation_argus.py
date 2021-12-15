@@ -38,8 +38,11 @@ SCALES = [1.0]
 COLORS = "extern/pyconvsegnet/dataset/ade20k/ade20k_colors.txt"
 ADE20K_TO_PLATGES = True
 
-WATER_ID = 21
+ALPHA = 0.5
+
+WATER_ID = 21 # Indexes from ADE20K that does not colide with ArgusNL
 SAND_ID = 46
+OTHERS_ID = 0
 
 VERBOSE = True
 PLOT = False
@@ -53,6 +56,7 @@ def argus_to_platges(np_img):
         np_img[np_img == i] = WATER_ID
     for i in sand:
         np_img[np_img == i] = SAND_ID
+    np_img[(np_img != WATER_ID) & (np_img != SAND_ID)] = OTHERS_ID
     return np_img
 
 def ade20k_to_platges(np_img):
@@ -62,6 +66,7 @@ def ade20k_to_platges(np_img):
         np_img[np_img == i] = WATER_ID
     for i in sand:
         np_img[np_img == i] = SAND_ID
+    np_img[(np_img != WATER_ID) & (np_img != SAND_ID)] = OTHERS_ID
     return np_img
 
 def apply_net(model, input_, classes, crop_h, crop_w, mean, std, base_size, scales, combine=False, colors=None):
@@ -70,8 +75,7 @@ def apply_net(model, input_, classes, crop_h, crop_w, mean, std, base_size, scal
     input_ = input_.numpy()
     #input_ = np.squeeze(input_, axis=0)
     image = np.transpose(input_, (1, 2, 0))
-    #h, w, _ = image.shape #TODO: shape is h, w, _ but the code below works well if assuming w, h, _ (output grey or colorize)
-    w, h, _ = image.shape
+    h, w, _ = image.shape
 
     ########### to keep the same image size
     if base_size == 0:
@@ -97,6 +101,24 @@ def apply_net(model, input_, classes, crop_h, crop_w, mean, std, base_size, scal
     if colors is not None: output = colorize(output, colors)
 
     return output
+
+def mIoU(ground_truth, seg_img):
+
+    ground_truth = np.array(ground_truth).ravel()
+    seg_img = np.array(seg_img).ravel()
+    v_IoU = []
+
+    # only targeded classes are used
+    for cls_ in np.unique(ground_truth):
+        ground_cls = (ground_truth == cls_)
+        seg_cls = (seg_img == cls_)
+
+        intersection = np.sum(seg_cls[ground_cls])
+        union = np.sum(seg_cls) + np.sum(ground_cls) - intersection
+
+        v_IoU.append(float(intersection) / float(union))
+    
+    return np.mean(v_IoU)
 
 
 if __name__ == "__main__":
@@ -127,15 +149,47 @@ if __name__ == "__main__":
     colors = None
     if COLORS is not None: colors = np.loadtxt(COLORS).astype('uint8')
 
-    for batch in dataloader:
+    
+    save_path_IoU = f"{SAVE_PATH}/argus_IoUs"
+    v_mIoU = []
+
+    for id_batch, batch in enumerate(dataloader):
         for img, segments, classes, img_path in batch:
             if VERBOSE:
-                print(f"{img_path}")
+                print(f"[{id_batch} / {len(dataset)}] - {img_path}")
 
-            save_path = f"{SAVE_PATH}seg_{os.path.basename(img_path)}"
+            save_path_seg = f"{SAVE_PATH}/seg_{os.path.basename(img_path)}"
+            save_path_ovr = f"{SAVE_PATH}/ovr_{os.path.basename(img_path)}"
+            #save_path_grt = f"{SAVE_PATH}/grt_{os.path.basename(img_path)}"
+            #save_path_gto = f"{SAVE_PATH}/gto_{os.path.basename(img_path)}"
 
-            seg_img = apply_net(segmentation_net, img, CLASSES, CROP_H, CROP_W, MEAN, STD, BASE_SIZE, SCALES, combine=ADE20K_TO_PLATGES, colors=colors)
+            seg_img = apply_net(segmentation_net, img, CLASSES, CROP_H, CROP_W, MEAN, STD, BASE_SIZE, SCALES, combine=ADE20K_TO_PLATGES, colors=None)
 
-            if COLORS is None : cv2.imwrite(save_path, seg_img)
-            else : seg_img.convert('RGB').save(save_path)
+            if colors is not None:
+                seg_img_col = colorize(seg_img, colors)
+                cv2.imwrite(save_path_seg, seg_img_col)
+                img_with_seg = cv2.addWeighted(np.transpose(img.numpy(), (1, 2, 0)), 1-ALPHA, np.array(seg_img_col.convert('RGB')), ALPHA, 0.0)
+                cv2.imwrite(save_path_ovr, img_with_seg)
 
+            ground_truth = segments.clone()
+            for gt_idx, gt_cls in enumerate(classes):
+                ground_truth[segments == gt_idx] = gt_cls
+            ground_truth = argus_to_platges(ground_truth)
+
+            img_mIoU = mIoU(ground_truth, seg_img)
+            print(f'img_mIoU =  {img_mIoU}')
+
+            v_mIoU.append(img_mIoU)
+    
+    v_mIoU = np.array(v_mIoU)
+
+    mean_mIoU = np.mean(v_mIoU)
+    min_mIoU = np.min(v_mIoU)
+    max_mIoU = np.max(v_mIoU)
+
+    print(f'mean_mIou: {mean_mIoU}')
+    print(f'min_mIou: {min_mIoU}')
+    print(f'max_mIou: {max_mIoU}')
+
+    v_mIoU.dump(f'{save_path_IoU}.npy')
+    np.savetxt(f'{save_path_IoU}.txt', v_mIoU, fmt='%.3f')

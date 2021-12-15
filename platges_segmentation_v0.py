@@ -50,10 +50,13 @@ def ade20k_to_platges(np_img):
     sand = [0, 46, 81, 94] # and 13
     water_id = 21
     sand_id = 46
+    
     for i in water:
         np_img[np_img == i] = water_id
     for i in sand:
         np_img[np_img == i] = sand_id
+    np_img[(np_img != WATER_ID) & (np_img != SAND_ID)] = OTHERS_ID
+
     return np_img
 
 def apply_net(model, input_, classes, crop_h, crop_w, mean, std, base_size, scales, combine=False, colors=None):

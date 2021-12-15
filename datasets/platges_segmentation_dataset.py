@@ -71,20 +71,21 @@ class Platges_ArgusNLDataset(Dataset):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = image[8:-8, :, :] # there is a cropped version with image filename prefix cropped_
 
+        with open(seg_path, 'rb') as f:
+            segments = pickle.load(f, encoding='latin1')
+        with open(cls_path, 'rb') as f:
+            classes = pickle.load(f)
+
         if self.downsample is not None and self.downsample != 1:
-            image = cv2.resize(image, (image.shape[0] // self.downsample, image.shape[1] // self.downsample), interpolation=cv2.INTER_AREA)
+            image = cv2.resize(image, (image.shape[1] // self.downsample, image.shape[0] // self.downsample), interpolation=cv2.INTER_AREA)
+            segments = segments[::self.downsample, ::self.downsample]
 
         if self.aug is not None:
             image = self.aug(image=image)['image']
             # image = np.transpose(image, (2, 0, 1)).astype(np.float32) or permute if tensor ¿?
         
-        with open(seg_path, 'rb') as f:
-            segments = pickle.load(f, encoding='latin1')
-        with open(cls_path, 'rb') as f:
-            classes = pickle.load(f)
-        
-        if labels_map is not None:
-            classes = [labels_map.get(k, self.default_value) for k in classes]
+        if self.labels_map is not None:
+            classes = [self.labels_map.get(k, self.default_value) for k in classes]
         if self.to_tensor:
             segments = torch.tensor(segments, dtype=torch.long)
             classes = torch.tensor(classes, dtype=torch.long)
