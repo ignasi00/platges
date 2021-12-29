@@ -50,12 +50,13 @@ def ade20k_to_platges(np_img):
     sand = [0, 46, 81, 94] # and 13
     water_id = 21
     sand_id = 46
+    others_id = 0
     
     for i in water:
         np_img[np_img == i] = water_id
     for i in sand:
         np_img[np_img == i] = sand_id
-    np_img[(np_img != WATER_ID) & (np_img != SAND_ID)] = OTHERS_ID
+    np_img[(np_img != water_id) & (np_img != sand_id)] = others_id
 
     return np_img
 
@@ -65,8 +66,7 @@ def apply_net(model, input_, classes, crop_h, crop_w, mean, std, base_size, scal
     input_ = input_.numpy()
     #input_ = np.squeeze(input_, axis=0)
     image = np.transpose(input_, (1, 2, 0))
-    #h, w, _ = image.shape #TODO: shape is h, w, _ but the code below works well if assuming w, h, _ (output grey or colorize)
-    w, h, _ = image.shape
+    h, w, _ = image.shape
 
     ########### to keep the same image size
     if base_size == 0:

@@ -117,9 +117,10 @@ class Platges_DronHomographyDataset(Dataset):
         for i, dict_ in enumerate(meta):
             # TODO: read in color
             images[i] = cv2.imread(dict_[PATH], self.read_flag)
+            # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # <- currently is in grayscale
             # downsample TODO: improve style
             if self.downsample is not None and self.downsample != 1:
-                images[i] = cv2.resize(images[i], (images[i].shape[0] // self.downsample, images[i].shape[1] // self.downsample), interpolation=cv2.INTER_AREA)
+                images[i] = cv2.resize(images[i], (images[i].shape[1] // self.downsample, images[i].shape[0] // self.downsample), interpolation=cv2.INTER_AREA)
             # TODO: Color BGR to RGB if needed/works
             if self.to_tensor is not None:
                 images[i] = self.to_tensor(image=images[i])['image']

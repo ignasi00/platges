@@ -24,6 +24,7 @@ class RANSAC_MatrixFinder():
                 return H, matches, mask
             return None, matches, None
 
+# TODO: Make a TorchOverlap class that compute overlaps through homography matrix and can implement nn.Module
 class BasicStitching():
 
     def __init__(self, point_finder_descriptor=None, homography_matrix_estimator=None, matrix_applier=None):
@@ -116,7 +117,7 @@ class BasicStitching():
 
         return h
 
-    def forward(self, x, verbose=False, plot=True, descriptor_arg2=None):
+    def forward(self, x, verbose=False, plot=False, descriptor_arg2=None):
         # find points of interestand its descriptors
         if hasattr(descriptor_arg2, '__len__') and len(x) == len(descriptor_arg2):
             y = zip(x, descriptor_arg2)

@@ -40,13 +40,13 @@ ADE20K_TO_PLATGES = True
 
 ALPHA = 0.5
 
-WATER_ID = 21 # Indexes from ADE20K that does not colide with ArgusNL
-SAND_ID = 46
-OTHERS_ID = 0
-
 VERBOSE = True
 PLOT = False
 ############# ##### ###### #############
+
+WATER_ID = 21 # Indexes from ADE20K that does not colide with ArgusNL
+SAND_ID = 46
+OTHERS_ID = 0
 
 
 def argus_to_platges(np_img):
@@ -127,7 +127,6 @@ if __name__ == "__main__":
 
     dataset = Platges_ArgusNLDataset(   DATA_PATH,
                                         labels_map=LABELS,
-                                        aug=None,
                                         to_tensor=True,
                                         downsample=DOWNSAMPLE,
                                         img_ext=None,
@@ -168,7 +167,7 @@ if __name__ == "__main__":
             if colors is not None:
                 seg_img_col = colorize(seg_img, colors)
                 seg_img_col.convert('RGB').save(save_path_seg)
-                img_with_seg = cv2.addWeighted(np.transpose(img.numpy(), (1, 2, 0)), 1-ALPHA, np.array(seg_img_col.convert('RGB')), ALPHA, 0.0)
+                img_with_seg = cv2.addWeighted(np.transpose(img.numpy().astype(np.float64), (1, 2, 0)), 1-ALPHA, np.array(seg_img_col.convert('RGB'), np.float64), ALPHA, 0.0)
                 cv2.imwrite(save_path_ovr, img_with_seg)
 
             ground_truth = segments.clone()
@@ -177,7 +176,7 @@ if __name__ == "__main__":
             ground_truth = argus_to_platges(ground_truth)
 
             img_mIoU = mIoU(ground_truth, seg_img)
-            print(f'img_mIoU =  {img_mIoU}')
+            if VERBOSE : print(f'img_mIoU =  {img_mIoU}')
 
             v_mIoU.append(img_mIoU)
     
@@ -187,9 +186,10 @@ if __name__ == "__main__":
     min_mIoU = np.min(v_mIoU)
     max_mIoU = np.max(v_mIoU)
 
-    print(f'\n----\n\nmean_mIou: {mean_mIoU}')
-    print(f'min_mIou: {min_mIoU}')
-    print(f'max_mIou: {max_mIoU}')
+    if VERBOSE:
+        print(f'\n----\n\nmean_mIou: {mean_mIoU}')
+        print(f'min_mIou: {min_mIoU}')
+        print(f'max_mIou: {max_mIoU}')
 
     v_mIoU.dump(f'{save_path_IoU}.npy')
     np.savetxt(f'{save_path_IoU}.txt', v_mIoU, fmt='%.3f')
