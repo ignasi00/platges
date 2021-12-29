@@ -74,6 +74,7 @@ class Platges_ArgusNLDataset(Dataset):
         with open(cls_path, 'rb') as f:
             classes = pickle.load(f) #ArgusNL: vector that contains the categorical classes (with repetitions) of the previous superpixels
 
+        # TODO: Determine if downsampling and to_tensor should be here or useing a warping dataset class (by instance, transform_dataset)
         if self.downsample is not None and self.downsample > 1:
             image = cv2.resize(image, (image.shape[1] // self.downsample, image.shape[0] // self.downsample), interpolation=cv2.INTER_AREA)
             segments = segments[::self.downsample, ::self.downsample]
