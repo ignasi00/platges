@@ -4,7 +4,7 @@ import numpy as np
 import sys
 from torch.utils.data import DataLoader
 
-from datasets.platges_homography_dataset import Platges_DronHomographyDataset
+from datasets_v0.platges_homography_dataset import Platges_DronHomographyDataset
 from docopts.help_panoramica import parse_args
 from models.algorithms.homography import BasicStitching, RANSAC_MatrixFinder
 

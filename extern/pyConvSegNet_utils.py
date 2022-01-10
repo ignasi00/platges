@@ -5,11 +5,11 @@ import numpy as np
 from extern.pyconvsegnet.tool.test import scale_process, colorize
 
 
-def apply_net_cpu(model, input_, classes, crop_h, crop_w, mean, std, base_size, scales):
-    # From pyConvSegNet code with small modifications
+def apply_net_eval_cpu(model, input_, classes, crop_h, crop_w, mean, std, base_size, scales):
+    # From pyConvSegNet test code with small modifications
     model.eval()
     
-    input_ = input_.numpy()
+    if not isinstance(input_, np.ndarray) : input_ = input_.numpy()
     #input_ = np.squeeze(input_, axis=0)
     image = np.transpose(input_, (1, 2, 0)) # shape = H, W, 3
     h, w, _ = image.shape
@@ -34,5 +34,22 @@ def apply_net_cpu(model, input_, classes, crop_h, crop_w, mean, std, base_size, 
     prediction /= len(scales)
     prediction = np.argmax(prediction, axis=2)
     output = np.uint8(prediction)
+
+    return output
+
+def apply_net_train(model, input_, train=True, cuda=False):
+    # From pyConvSegNet train code with small modifications
+    # TODO: model configuration should be applied as little as possible
+    model.eval()
+    if train:
+        for m in model.modules(): # model.modules() yield all modules recursively (it goes inside submodules)
+            if m.__class__.__name__.startswith('Dropout') or m.__class__.__name__.startswith('BatchNorm'):
+                m.train()
+    
+    if cuda:
+        model = model.cuda() # .to(device) seems more beautiful
+        input_ = input_.cuda(non_blocking=True)
+    
+    output = model(input_)
 
     return output

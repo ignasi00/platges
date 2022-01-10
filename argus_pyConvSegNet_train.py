@@ -1,67 +1,72 @@
 
+import albumentations as A
+import albumentations.pytorch
 import cv2
-import numpy as np
-import os
-from PIL import Image, ImageMath
-from skimage import io, color
+import random
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
-from datasets.platges_segmentation_dataset import Platges_ArgusNLDataset, LABELS
-from metrics.mIoU import mIoU
+from datasets.argusNL_dataset import ArgusNLDataset
+from datasets.wrapping_datasets.transforms_dataset import TransformDataset
+from datasets.wrapping_datasets.dataset_specific.argusNL_to_platges_dataset import ArgusNL_to_PlatgesDataset
+from loggers.wandb import WandB_logger
+from losses.dice_loss import DiceLoss
+from metrics.mIoU import torch_mIoU
 
 from extern.pyconvsegnet.model.pyconvsegnet import PyConvSegNet
-from extern.pyconvsegnet.tool.test import scale_process, colorize
-from extern.pyConvSegNet_utils import apply_net_cpu
+from extern.pyConvSegNet_utils import apply_net_train
 
 
-SEGMENTATION_PREFIX = 'seg_'
-OVERLAPPED_PREFIX = 'ovr_'
+def build_datasets(data_path, train_prob, default_value=-1):
+    argusNL = ArgusNLDataset(data_path)
+    platges = ArgusNL_to_PlatgesDataset(argusNL, default_value=default_value)
 
-RED = np.array([255, 0, 0])
+    idxs = list(range(len(platges)))
+    random.shuffle(idxs)
 
-WATER_ID = 21 # Indexes from ADE20K that does not colide with ArgusNL and there is a good color selected.
-SAND_ID = 46
-OTHERS_ID = 0 # 0 does not overlap either.
+    div = int(len(platges) * train_prob)
 
+    train_dataset = Subset(platges, idxs[:div])
+    val_dataset = Subset(platges, idxs[div:])
 
-# TODO: improbe all label transformations from datasets to our problem (this method may crack in some other dataset case)
-def argus_to_platges(np_img):
-    water = [3, 7, 9]
-    sand = [1, 4, 5, 8] # and 13
-    for i in water:
-        np_img[np_img == i] = WATER_ID
-    for i in sand:
-        np_img[np_img == i] = SAND_ID
-    np_img[(np_img != WATER_ID) & (np_img != SAND_ID)] = OTHERS_ID
-    return np_img
+    return train_dataset, val_dataset
 
-def ade20k_to_platges(np_img):
-    water = [9, 21, 26, 37, 109, 113, 128]
-    sand = [0, 46, 81, 94] # and 13
-    for i in water:
-        np_img[np_img == i] = WATER_ID
-    for i in sand:
-        np_img[np_img == i] = SAND_ID
-    np_img[(np_img != WATER_ID) & (np_img != SAND_ID)] = OTHERS_ID
-    return np_img
+def build_train_transforms(resize_height, resize_width, crop_height, crop_width, mean=None, std=None, value_scale=255):
+    mean = mean or [0.485, 0.456, 0.406]
+    mean = [item * value_scale for item in mean]
+    std = std or [0.229, 0.224, 0.225]
+    std = [item * value_scale for item in std]
 
-###############################################
+    train_transforms = [
+        A.HorizontalFlip(p=0.5),
+        A.ShiftScaleRotate(scale_limit=0.2, shift_limit=0.1, rotate_limit=10, interpolation=1, border_mode=cv2.BORDER_CONSTANT, value=0, p=0.5),
+        A.Resize(resize_height, resize_width, interpolation=cv2.INTER_AREA, always_apply=True), #assert (x_size[2]-1) % 8 == 0 and (x_size[3]-1) % 8 == 0
+        A.RandomCrop(crop_height, crop_width, p=1),
+        A.Normalize(mean=mean, std=std),
+        A.pytorch.transforms.ToTensorV2()
+    ]
 
-def buid_dataloader(data_path, downsample=None):
-    dataset = Platges_ArgusNLDataset(   data_path,
-                                        labels_map=LABELS,
-                                        to_tensor=True,
-                                        downsample=downsample,
-                                        img_ext=None,
-                                        seg_ext=None,
-                                        cls_ext=None,
-                                        default_value=-1)
+    return A.Compose(train_transforms)
 
-    def my_collate(x): return x # <- do not transform imgs to tensor here
-    dataloader = DataLoader(dataset, collate_fn=my_collate)
+def build_val_transforms(crop_height, crop_width, mean=None, std=None, value_scale=255):
+    mean = mean or [0.485, 0.456, 0.406]
+    mean = [item * value_scale for item in mean]
+    std = std or [0.229, 0.224, 0.225]
+    std = [item * value_scale for item in std]
 
+    val_transforms = [
+        A.RandomCrop(crop_height, crop_width, p=1),
+        A.Normalize(mean=mean, std=std),
+        A.pytorch.transforms.ToTensorV2()
+    ]
+
+    return A.Compose(val_transforms)
+
+def buid_dataloader(dataset, transforms, batch_size=1):
+    dataset = TransformDataset(dataset, transforms)
+    dataloader = DataLoader(dataset, batch_size=batch_size) # collate_fn, sampler, etc
+    
     return dataloader
 
 def build_model(layers, num_classes, zoom_factor, backbone_output_stride, backbone_net, pretrained_path=None):
@@ -71,117 +76,137 @@ def build_model(layers, num_classes, zoom_factor, backbone_output_stride, backbo
 
     if pretrained_path is not None:
         checkpoint = torch.load(pretrained_path)
+        checkpoint.pop('aux.4.weight')
+        checkpoint.pop('aux.4.bias')
+        checkpoint.pop('cls.1.weight')
+        checkpoint.pop('cls.1.bias')
         model.load_state_dict(checkpoint, strict=False)
 
     return model
 
-def process_data(segmentation_net, img, num_classes, crop_h, crop_w, mean, std, base_size, scales, ade20k_labels=False):
-    output = apply_net_cpu(segmentation_net, img, num_classes, crop_h, crop_w, mean, std, base_size, scales)
+def build_loss(loss_type, *loss_params):
+    return loss_type(*loss_params)
 
-    if ade20k_labels : output = ade20k_to_platges(output)
+def build_optim(model, learning_rate):
+    return torch.optim.Adam(model.parameters(), lr=learning_rate)
 
+def process_data(segmentation_net, img, train=True, cuda=False):
+    output = apply_net_train(segmentation_net, img, train, cuda)
     return output
 
-def process_ground_truth(segments, classes=None, argus_labels=False):
-    ground_truth = segments.clone()
+def compute_metrics(metrics_dict, seg_imgs, ground_truth, prefix):
+    output = dict()
+    for name, metric_func in metrics_dict.items():
+        output[f'{prefix}{name}'] = metric_func(ground_truth, seg_imgs)
+    return output
 
-    if classes is not None:
-        for gt_idx, gt_cls in enumerate(classes):
-            ground_truth[segments == gt_idx] = gt_cls
+def optimization_step(optimizer, loss):
+    optimizer.zero_grad() # clean gradient buffer from previous run
+    loss.backward()
+    optimizer.step()
+
+def save_model(logger, model, epoch, filename, imgs):
+
+    torch.onnx.export(model, imgs[1], filename)
+    # TODO: manage aliases like "best_mIoU", "best", etc
+    logger.save_model(filename, aliases=[f"epoch_{epoch}"])
+
+
+def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_width, mean, std, value_scale, batch_size,
+            layers, num_classes, zoom_factor, backbone_output_stride, backbone_net, pretrained_path, learning_rate, 
+            experiment_name, entity, log_freq, num_epochs, save_epoch_freq, val_epoch_freq, filename, cuda):
     
-    if argus_labels : ground_truth = argus_to_platges(ground_truth)
-    
-    return ground_truth
+    train_dataset, val_dataset = build_datasets(data_path, train_prob, default_value=-1)
 
-def compute_metrics(seg_img, ground_truth, verbose=False):
-    img_mIoU = mIoU(ground_truth, seg_img)
-    if verbose : print(f'img_mIoU =  {img_mIoU}')
-    return img_mIoU
+    train_transforms = build_train_transforms(resize_height, resize_width, crop_height, crop_width, mean=mean, std=std, value_scale=value_scale)
+    train_dataloader = buid_dataloader(train_dataset, train_transforms, batch_size) # list or folder
 
-def save_iter(img, seg_img, colors, save_path, img_path, alpha, error_red=False, ground_truth=None):
-    save_path_seg = f"{save_path}/{SEGMENTATION_PREFIX}{os.path.basename(img_path)}"
-    save_path_ovr = f"{save_path}/{OVERLAPPED_PREFIX}{os.path.basename(img_path)}"
-
-    seg_img_col = colorize(seg_img, colors)
-    seg_img_col.convert('RGB').save(save_path_seg)
-    
-    mask = np.array(seg_img_col.convert('RGB'), np.float64)
-    if error_red : mask[ np.array(seg_img) != np.array(ground_truth) ] = RED
-
-    img_with_seg = cv2.addWeighted(np.transpose(img.numpy().astype(np.float64), (1, 2, 0)), 1-alpha, mask, alpha, 0.0)
-    cv2.imwrite(save_path_ovr, img_with_seg)
-
-def save_metrics(v_mIoU, save_path, verbose=False):
-    save_path_IoU = f"{save_path}/argus_IoUs"
-    v_mIoU = np.array(v_mIoU)
-
-    mean_mIoU = np.mean(v_mIoU)
-    min_mIoU = np.min(v_mIoU)
-    max_mIoU = np.max(v_mIoU)
-
-    if verbose:
-        print(f'\n----\n\nmean_mIou: {mean_mIoU}')
-        print(f'min_mIou: {min_mIoU}')
-        print(f'max_mIou: {max_mIoU}')
-
-    v_mIoU.dump(f'{save_path_IoU}.npy')
-    np.savetxt(f'{save_path_IoU}.txt', v_mIoU, fmt='%.3f')
-
-def main(data_path, downsample, argus_labels, layers, num_classes, ade20k_labels, zoom_factor, backbone_output_stride, backbone_net, pretrained_path, crop_h, crop_w, mean, std, base_size, scales, save_path, colors_path, alpha, error_red, verbose):
-    os.makedirs(save_path, exist_ok = True)
-
-    dataloader = buid_dataloader(data_path, downsample)
+    val_transforms = build_val_transforms(crop_height, crop_width, mean=mean, std=std, value_scale=value_scale)
+    val_dataloader = buid_dataloader(val_dataset, val_transforms, batch_size=batch_size)
 
     segmentation_net = build_model(layers, num_classes, zoom_factor, backbone_output_stride, backbone_net, pretrained_path)
 
-    colors = None
-    if colors_path is not None: colors = np.loadtxt(colors_path).astype('uint8')
+    # TODO: ¿construct objects including the model as initialization input (the loss will watch the model internally) for regularizations?
+    loss_type = DiceLoss
+    loss_params = [torch.mean]
+    loss_function = build_loss(loss_type, *loss_params)
+    # TODO: work on changing optimizers
+    optimizer = build_optim(segmentation_net, learning_rate)
 
-    v_mIoU = []
-    for id_batch, batch in enumerate(dataloader):
-        for img, segments, classes, img_path in batch:
-            if verbose:
-                print(f"[{id_batch} / {len(dataloader)}] - {img_path}")
+    metrics_dict = {'mIoU' : torch_mIoU}
+
+    project_name = "platgesBCN"
+    logger = WandB_logger(project_name, experiment_name, entity)
+    logger.watch_model(segmentation_net, log="all", log_freq=log_freq)
+
+    for epoch in range(1, num_epochs+1): # an epoch
+        # minibatch_size = 1 => image update, minibatch_size = len(dataloader) => epoch update, in between => minibatch update
+        # TODO: big minibatch size needs other strategies with less simultaneus memory usage
+        for id_batch, (imgs, ground_truth, imgs_path) in enumerate(train_dataloader): # a minibatch
             
-            seg_img = process_data(segmentation_net, img, num_classes, crop_h, crop_w, mean, std, base_size, scales, ade20k_labels)
-            ground_truth = process_ground_truth(segments, classes, argus_labels)
-            v_mIoU.append(compute_metrics(seg_img, ground_truth, verbose))
+            seg_imgs = process_data(segmentation_net, imgs, train=True, cuda=cuda)
+            loss = loss_function(seg_imgs, ground_truth)
 
-            if colors is not None : save_iter(img, seg_img, colors, save_path, img_path, alpha, error_red, ground_truth)
-    
-    save_metrics(v_mIoU, save_path, verbose)
+            metrics = compute_metrics(metrics_dict, seg_imgs, ground_truth, 'train_')
+            metrics['train_loss'] = loss
+            metrics['train_epoch'] = epoch
+            metrics['train_batch'] = id_batch
+
+            optimization_step(optimizer, loss)
+
+            logger.log(metrics, step=None, commit=True)
+        
+        if epoch % save_epoch_freq == 0 : save_model(logger, model, epoch, filename, imgs)
+
+        if epoch % val_epoch_freq == 0:
+            for id_batch, (imgs, ground_truth, imgs_path) in enumerate(val_dataloader):
+                
+                with torch.no_grad():
+                    seg_imgs = process_data(segmentation_net, imgs, train=False, cuda=cuda)
+                    loss = loss_function(seg_imgs, ground_truth)
+
+                    metrics = compute_metrics(metrics_dict, seg_imgs, ground_truth, 'val_')
+                    metrics['val_loss'] = loss
+                    metrics['val_epoch'] = epoch
+                    metrics['val_batch'] = id_batch
+                
+                logger.log(metrics, step=None, commit=True)
+
 
 
 if __name__ == "__main__":
 
-    VALUE_SCALE = 255
-
-    data_path = '/mnt/c/Users/Ignasi/Downloads/ArgusNL'
-    downsample = 4
-    argus_labels = True
+    entity = "ignasi00"
+    data_path = '/home/ignasi/platges/data_lists/argusNL_train.csv'
+    train_prob = 0.7
     layers = 152
-    classes = 150
-    ade20k_labels = True
+    num_classes = 3
     zoom_factor = 8
     backbone_output_stride = 8
     backbone_net = "pyconvresnet"
     pretrained_path = '/home/ignasi/platges/extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
-    crop_h = 473
-    crop_w = 473
-    MEAN = [0.485, 0.456, 0.406]
-    mean = [item * VALUE_SCALE for item in MEAN]
-    STD = [0.229, 0.224, 0.225]
-    std = [item * VALUE_SCALE for item in STD]
-    base_size = 512
-    scales = [1.0]
-    save_path = '/mnt/c/Users/Ignasi/Downloads/argus_saved/'
-    colors_path = "extern/pyconvsegnet/dataset/ade20k/ade20k_colors.txt"
-    alpha = 0.5
-    error_red = True
-    verbose = True
+    resize_height = int(1024 / 2)
+    resize_width = int(1392 / 2)
+    crop_height = 473
+    crop_width = 473
+    value_scale = 255
+    batch_size = 2 #9
+    mean = [0.485, 0.456, 0.406]
+    std = [0.229, 0.224, 0.225]
+    learning_rate = 0.0005 
+    experiment_name = "20220110_test"
+    log_freq = 5
+    num_epochs = 30
+    save_epoch_freq = 10
+    val_epoch_freq = 3
+    filename = "/home/ignasi/platges/model_parameters/test_model.onnx"
+    cuda = False
 
-    main(   data_path, downsample, argus_labels, layers, 
-            classes, ade20k_labels, zoom_factor, backbone_output_stride, 
-            backbone_net, pretrained_path, crop_h, crop_w,
-            mean, std, base_size, scales, save_path, 
-            colors_path, alpha, error_red, verbose)
+    main(   data_path, train_prob, resize_height, 
+            resize_width, crop_height, crop_width, 
+            mean, std, value_scale, batch_size,
+            layers, num_classes, zoom_factor, 
+            backbone_output_stride, backbone_net, 
+            pretrained_path, learning_rate, 
+            experiment_name, entity, log_freq, num_epochs, 
+            save_epoch_freq, val_epoch_freq, filename, cuda)

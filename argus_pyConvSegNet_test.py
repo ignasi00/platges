@@ -8,12 +8,12 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from datasets.platges_segmentation_dataset import Platges_ArgusNLDataset, LABELS
+from datasets. import # TODO: 
 from metrics.mIoU import mIoU
 
 from extern.pyconvsegnet.model.pyconvsegnet import PyConvSegNet
 from extern.pyconvsegnet.tool.test import scale_process, colorize
-from extern.pyConvSegNet_utils import apply_net_cpu
+from extern.pyConvSegNet_utils import apply_net_eval_cpu
 
 
 SEGMENTATION_PREFIX = 'seg_'
@@ -26,38 +26,37 @@ SAND_ID = 46
 OTHERS_ID = 0 # 0 does not overlap either.
 
 
-# TODO: improbe all label transformations from datasets to our problem (this method may crack in some other dataset case)
-def argus_to_platges(np_img):
-    water = [3, 7, 9]
-    sand = [1, 4, 5, 8] # and 13
-    for i in water:
-        np_img[np_img == i] = WATER_ID
-    for i in sand:
-        np_img[np_img == i] = SAND_ID
-    np_img[(np_img != WATER_ID) & (np_img != SAND_ID)] = OTHERS_ID
-    return np_img
+def ade20k_to_platges(np_img, water_idxs=None, sand_idxs=None, water_id=WATER_ID, sand_id=SAND_ID, others_id=OTHERS_ID):
+    water = water_idxs or [9, 21, 26, 37, 109, 113, 128]
+    sand = sand_idxs or [0, 46, 81, 94] # and 13
 
-def ade20k_to_platges(np_img):
-    water = [9, 21, 26, 37, 109, 113, 128]
-    sand = [0, 46, 81, 94] # and 13
+    water_mask = np.zeros(np_img.shape)
     for i in water:
-        np_img[np_img == i] = WATER_ID
+        water_mask = np.logical_or(water_mask, (np_img == i))
+    
+    sand_mask = np.zeros(np_img.shape)
     for i in sand:
-        np_img[np_img == i] = SAND_ID
-    np_img[(np_img != WATER_ID) & (np_img != SAND_ID)] = OTHERS_ID
+        sand_mask = np.logical_or(sand_mask, (np_img == i))
+
+    np_img[water_mask] = water_id
+    np_img[sand_id] = sand_id
+    np_img[(not water_mask) & (not sand_mask)] = others_id
+    
     return np_img
 
 ###############################################
 
-def buid_dataloader(data_path, downsample=None):
-    dataset = Platges_ArgusNLDataset(   data_path,
-                                        labels_map=LABELS,
-                                        to_tensor=True,
-                                        downsample=downsample,
-                                        img_ext=None,
-                                        seg_ext=None,
-                                        cls_ext=None,
-                                        default_value=-1)
+def buid_dataloader(data_path, resize_height, resize_width, default_value=-1):
+    argusNL = ArgusNLDataset(data_path)
+    platges = ArgusNL_to_PlatgesDataset(argusNL, default_value=default_value)
+    
+    transforms_list = [
+        A.Resize(resize_height, resize_width, interpolation=interpolation=cv2.INTER_AREA, always_apply=True), #assert (x_size[2]-1) % 8 == 0 and (x_size[3]-1) % 8 == 0
+        A.ToTensorV2(),
+    ]
+    transforms = A.Compose(transforms_list)
+
+    dataset = TransformDataset(platges, transforms)
 
     def my_collate(x): return x # <- do not transform imgs to tensor here
     dataloader = DataLoader(dataset, collate_fn=my_collate)
@@ -76,7 +75,8 @@ def build_model(layers, num_classes, zoom_factor, backbone_output_stride, backbo
     return model
 
 def process_data(segmentation_net, img, num_classes, crop_h, crop_w, mean, std, base_size, scales, ade20k_labels=False):
-    output = apply_net_cpu(segmentation_net, img, num_classes, crop_h, crop_w, mean, std, base_size, scales)
+    with torch.no_grad():
+        output = apply_net_eval_cpu(segmentation_net, img, num_classes, crop_h, crop_w, mean, std, base_size, scales)
 
     if ade20k_labels : output = ade20k_to_platges(output)
 

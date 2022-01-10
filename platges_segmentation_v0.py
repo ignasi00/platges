@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from datasets.platges_homography_dataset import Platges_DronHomographyDataset
+from datasets_v0.platges_homography_dataset import Platges_DronHomographyDataset
 
 from extern.pyconvsegnet.model.pyconvsegnet import PyConvSegNet
 from extern.pyconvsegnet.tool.test import scale_process, colorize
