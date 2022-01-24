@@ -13,6 +13,7 @@ from datasets.wrapping_datasets.dataset_specific.argusNL_to_platges_dataset impo
 from loggers.wandb import WandB_logger
 from losses.dice_loss import DiceLoss
 from metrics.mIoU import torch_mIoU
+from train_utils.early_stop.validation_epoch_divergence_stop import ValidationEpochDivergenceStop
 
 from extern.pyconvsegnet.model.pyconvsegnet import PyConvSegNet
 from extern.pyConvSegNet_utils import apply_net_train
@@ -41,21 +42,22 @@ def build_train_transforms(resize_height, resize_width, crop_height, crop_width,
     train_transforms = [
         A.HorizontalFlip(p=0.5),
         A.ShiftScaleRotate(scale_limit=0.2, shift_limit=0.1, rotate_limit=10, interpolation=1, border_mode=cv2.BORDER_CONSTANT, value=0, p=0.5),
-        A.Resize(resize_height, resize_width, interpolation=cv2.INTER_AREA, always_apply=True), #assert (x_size[2]-1) % 8 == 0 and (x_size[3]-1) % 8 == 0
-        A.RandomCrop(crop_height, crop_width, p=1),
+        A.Resize(resize_height, resize_width, interpolation=cv2.INTER_AREA, always_apply=True), 
+        A.RandomCrop(crop_height, crop_width, p=1), #assert (x_size[2]-1) % 8 == 0 and (x_size[3]-1) % 8 == 0
         A.Normalize(mean=mean, std=std),
         A.pytorch.transforms.ToTensorV2()
     ]
 
     return A.Compose(train_transforms)
 
-def build_val_transforms(crop_height, crop_width, mean=None, std=None, value_scale=255):
+def build_val_transforms(resize_height, resize_width, crop_height, crop_width, mean=None, std=None, value_scale=255):
     mean = mean or [0.485, 0.456, 0.406]
     mean = [item * value_scale for item in mean]
     std = std or [0.229, 0.224, 0.225]
     std = [item * value_scale for item in std]
 
     val_transforms = [
+        A.Resize(resize_height, resize_width, interpolation=cv2.INTER_AREA, always_apply=True),
         A.RandomCrop(crop_height, crop_width, p=1),
         A.Normalize(mean=mean, std=std),
         A.pytorch.transforms.ToTensorV2()
@@ -107,21 +109,22 @@ def optimization_step(optimizer, loss):
 
 def save_model(logger, model, epoch, filename, imgs):
 
-    torch.onnx.export(model, imgs[1], filename)
+    #torch.onnx.export(model, imgs[1], filename)
+    torch.save(model.state_dict(), filename)
     # TODO: manage aliases like "best_mIoU", "best", etc
     logger.save_model(filename, aliases=[f"epoch_{epoch}"])
 
 
 def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_width, mean, std, value_scale, batch_size,
             layers, num_classes, zoom_factor, backbone_output_stride, backbone_net, pretrained_path, learning_rate, 
-            experiment_name, entity, log_freq, num_epochs, save_epoch_freq, val_epoch_freq, filename, cuda):
+            experiment_name, entity, log_freq, num_epochs, val_epoch_freq, early_stop_memory, filename, cuda):
     
     train_dataset, val_dataset = build_datasets(data_path, train_prob, default_value=-1)
 
     train_transforms = build_train_transforms(resize_height, resize_width, crop_height, crop_width, mean=mean, std=std, value_scale=value_scale)
     train_dataloader = buid_dataloader(train_dataset, train_transforms, batch_size) # list or folder
 
-    val_transforms = build_val_transforms(crop_height, crop_width, mean=mean, std=std, value_scale=value_scale)
+    val_transforms = build_val_transforms(resize_height, resize_width, crop_height, crop_width, mean=mean, std=std, value_scale=value_scale)
     val_dataloader = buid_dataloader(val_dataset, val_transforms, batch_size=batch_size)
 
     segmentation_net = build_model(layers, num_classes, zoom_factor, backbone_output_stride, backbone_net, pretrained_path)
@@ -135,9 +138,19 @@ def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_w
 
     metrics_dict = {'mIoU' : torch_mIoU}
 
+    early_stoper = ValidationEpochDivergenceStop(epochs=early_stop_memory, criteria=min)
+
+    MODEL = "argusNL_pyConvSegNet"
+    config_summary = {
+        "input_size (height, width)" : f"({resize_height}, {resize_width})", "crop_size" : f"({crop_height}, {crop_width})",
+        "normalization (mean, std)" : f"({mean}, {std})", "value_scale" : value_scale, "zoom_factor" : zoom_factor,
+        "batch_size" : batch_size, "learning_rate" : learning_rate, "model" : MODEL
+    }
+
     project_name = "platgesBCN"
     logger = WandB_logger(project_name, experiment_name, entity)
     logger.watch_model(segmentation_net, log="all", log_freq=log_freq)
+    logger.summary(config_summary)
 
     for epoch in range(1, num_epochs+1): # an epoch
         # minibatch_size = 1 => image update, minibatch_size = len(dataloader) => epoch update, in between => minibatch update
@@ -149,14 +162,15 @@ def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_w
 
             metrics = compute_metrics(metrics_dict, seg_imgs, ground_truth, 'train_')
             metrics['train_loss'] = loss
-            metrics['train_epoch'] = epoch
-            metrics['train_batch'] = id_batch
 
             optimization_step(optimizer, loss)
 
-            logger.log(metrics, step=None, commit=True)
+            logger.log_metrics(metrics, step=None, commit=False)
+
+            train_idx = (epoch - 1) * len(train_dataloader) + id_batch
+            logger.log({'train_epoch' : epoch, 'train_batch' : id_batch, 'train_idx' : train_idx}, step=None, commit=True)
         
-        if epoch % save_epoch_freq == 0 : save_model(logger, model, epoch, filename, imgs)
+        save_model(logger, segmentation_net, epoch, filename, imgs)
 
         if epoch % val_epoch_freq == 0:
             for id_batch, (imgs, ground_truth, imgs_path) in enumerate(val_dataloader):
@@ -167,39 +181,53 @@ def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_w
 
                     metrics = compute_metrics(metrics_dict, seg_imgs, ground_truth, 'val_')
                     metrics['val_loss'] = loss
-                    metrics['val_epoch'] = epoch
-                    metrics['val_batch'] = id_batch
                 
-                logger.log(metrics, step=None, commit=True)
+                logger.log_metrics(metrics, step=None, commit=False)
+
+                val_idx = (epoch / val_epoch_freq - 1) * len(val_dataloader) + id_batch
+                logger.log({'val_epoch' : epoch, 'val_batch' : id_batch, 'val_idx' : val_idx}, step=None, commit=True)
+            
+        epoch_log = logger.log_epoch(epoch, setp=None, commit=True)
+        
+        if early_stoper.doStop(epoch_log['epoch_mean_val_loss']) : break
+
+    logger.summary_metrics()
+    logger.update_models()
 
 
 
 if __name__ == "__main__":
 
-    entity = "ignasi00"
+    from datetime import datetime
+
+
     data_path = '/home/ignasi/platges/data_lists/argusNL_train.csv'
     train_prob = 0.7
+    resize_height = int(1024 / 2)
+    resize_width = int(1392 / 2)
+    crop_height = 473
+    crop_width = 473
+    mean = [0.485, 0.456, 0.406]
+    std = [0.229, 0.224, 0.225]
+    value_scale = 255
+    batch_size = 2 #9
     layers = 152
     num_classes = 3
     zoom_factor = 8
     backbone_output_stride = 8
     backbone_net = "pyconvresnet"
     pretrained_path = '/home/ignasi/platges/extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
-    resize_height = int(1024 / 2)
-    resize_width = int(1392 / 2)
-    crop_height = 473
-    crop_width = 473
-    value_scale = 255
-    batch_size = 2 #9
-    mean = [0.485, 0.456, 0.406]
-    std = [0.229, 0.224, 0.225]
-    learning_rate = 0.0005 
-    experiment_name = "20220110_test"
+    learning_rate = 0.0001
+    
+    experiment_name = datetime.now().strftime("%Y%m%d_testsystem")
+    entity = "ignasi00"
     log_freq = 5
     num_epochs = 30
-    save_epoch_freq = 10
     val_epoch_freq = 3
-    filename = "/home/ignasi/platges/model_parameters/test_model.onnx"
+    early_stop_memory = 2
+    #filename = "/home/ignasi/platges/model_parameters/testsystem_model.onnx"
+    filename = "/home/ignasi/platges/model_parameters/testsystem_model.pth"
+
     cuda = False
 
     main(   data_path, train_prob, resize_height, 
@@ -209,4 +237,4 @@ if __name__ == "__main__":
             backbone_output_stride, backbone_net, 
             pretrained_path, learning_rate, 
             experiment_name, entity, log_freq, num_epochs, 
-            save_epoch_freq, val_epoch_freq, filename, cuda)
+            val_epoch_freq, early_stop_memory, filename, cuda)

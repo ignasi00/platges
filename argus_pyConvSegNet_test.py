@@ -8,18 +8,24 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from datasets. import # TODO: 
+from datasets.argusNL_dataset import ArgusNLDataset
+from datasets.wrapping_datasets.transforms_dataset import TransformDataset
+from datasets.wrapping_datasets.dataset_specific.argusNL_to_platges_dataset import ArgusNL_to_PlatgesDataset
+from loggers.wandb import WandB_logger
 from metrics.mIoU import mIoU
 
 from extern.pyconvsegnet.model.pyconvsegnet import PyConvSegNet
-from extern.pyconvsegnet.tool.test import scale_process, colorize
+from extern.pyconvsegnet.tool.test import scale_process
 from extern.pyConvSegNet_utils import apply_net_eval_cpu
 
 
 SEGMENTATION_PREFIX = 'seg_'
 OVERLAPPED_PREFIX = 'ovr_'
 
+GRAY = np.array([120 120 120])
 RED = np.array([255, 0, 0])
+BLUE = np.array([0, 0, 255])
+YELLOW = np.array([255, 255, 0])
 
 WATER_ID = 21 # Indexes from ADE20K that does not colide with ArgusNL and there is a good color selected.
 SAND_ID = 46
@@ -58,8 +64,7 @@ def buid_dataloader(data_path, resize_height, resize_width, default_value=-1):
 
     dataset = TransformDataset(platges, transforms)
 
-    def my_collate(x): return x # <- do not transform imgs to tensor here
-    dataloader = DataLoader(dataset, collate_fn=my_collate)
+    dataloader = DataLoader(dataset, batch_size=1)
 
     return dataloader
 
@@ -82,27 +87,18 @@ def process_data(segmentation_net, img, num_classes, crop_h, crop_w, mean, std, 
 
     return output
 
-def process_ground_truth(segments, classes=None, argus_labels=False):
-    ground_truth = segments.clone()
-
-    if classes is not None:
-        for gt_idx, gt_cls in enumerate(classes):
-            ground_truth[segments == gt_idx] = gt_cls
-    
-    if argus_labels : ground_truth = argus_to_platges(ground_truth)
-    
-    return ground_truth
-
 def compute_metrics(seg_img, ground_truth, verbose=False):
     img_mIoU = mIoU(ground_truth, seg_img)
     if verbose : print(f'img_mIoU =  {img_mIoU}')
     return img_mIoU
 
-def save_iter(img, seg_img, colors, save_path, img_path, alpha, error_red=False, ground_truth=None):
+def save_iter(img, seg_img, save_path, img_path, alpha, error_red=False, ground_truth=None):
     save_path_seg = f"{save_path}/{SEGMENTATION_PREFIX}{os.path.basename(img_path)}"
     save_path_ovr = f"{save_path}/{OVERLAPPED_PREFIX}{os.path.basename(img_path)}"
 
-    seg_img_col = colorize(seg_img, colors)
+    palette = np.array([GRAY, BLUE, YELLOW])
+    seg_img_col = Image.fromarray(seg_img.astype(np.uint8)).convert('P')
+    seg_img_col.putpalette(palette)
     seg_img_col.convert('RGB').save(save_path_seg)
     
     mask = np.array(seg_img_col.convert('RGB'), np.float64)
@@ -127,15 +123,14 @@ def save_metrics(v_mIoU, save_path, verbose=False):
     v_mIoU.dump(f'{save_path_IoU}.npy')
     np.savetxt(f'{save_path_IoU}.txt', v_mIoU, fmt='%.3f')
 
-def main(data_path, downsample, argus_labels, layers, num_classes, ade20k_labels, zoom_factor, backbone_output_stride, backbone_net, pretrained_path, crop_h, crop_w, mean, std, base_size, scales, save_path, colors_path, alpha, error_red, verbose):
+def main(data_path, resize_height, resize_width, layers, num_classes, ade20k_labels, zoom_factor, 
+            backbone_output_stride, backbone_net, pretrained_path, crop_h, crop_w, mean, std,
+            base_size, scales, save, save_path, alpha, error_red, verbose):
     os.makedirs(save_path, exist_ok = True)
 
-    dataloader = buid_dataloader(data_path, downsample)
+    dataloader = buid_dataloader(data_path, resize_height, resize_width)
 
     segmentation_net = build_model(layers, num_classes, zoom_factor, backbone_output_stride, backbone_net, pretrained_path)
-
-    colors = None
-    if colors_path is not None: colors = np.loadtxt(colors_path).astype('uint8')
 
     v_mIoU = []
     for id_batch, batch in enumerate(dataloader):
@@ -144,10 +139,9 @@ def main(data_path, downsample, argus_labels, layers, num_classes, ade20k_labels
                 print(f"[{id_batch} / {len(dataloader)}] - {img_path}")
             
             seg_img = process_data(segmentation_net, img, num_classes, crop_h, crop_w, mean, std, base_size, scales, ade20k_labels)
-            ground_truth = process_ground_truth(segments, classes, argus_labels)
             v_mIoU.append(compute_metrics(seg_img, ground_truth, verbose))
 
-            if colors is not None : save_iter(img, seg_img, colors, save_path, img_path, alpha, error_red, ground_truth)
+            if save : save_iter(img, seg_img, save_path, img_path, alpha, error_red, ground_truth)
     
     save_metrics(v_mIoU, save_path, verbose)
 
@@ -156,16 +150,17 @@ if __name__ == "__main__":
 
     VALUE_SCALE = 255
 
-    data_path = '/mnt/c/Users/Ignasi/Downloads/ArgusNL'
-    downsample = 4
-    argus_labels = True
+    data_path = '/home/ignasi/platges/data_lists/argusNL_test.csv'
+    resize_height = int(1024 / 2)
+    resize_width = int(1392 / 2)
     layers = 152
-    classes = 150
-    ade20k_labels = True
+    classes = 3 # 150
+    ade20k_labels = False
     zoom_factor = 8
     backbone_output_stride = 8
     backbone_net = "pyconvresnet"
-    pretrained_path = '/home/ignasi/platges/extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
+    # pretrained_path = '/home/ignasi/platges/extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
+    pretrained_path = '/home/ignasi/platges/model_parameters/test_model.pth'
     crop_h = 473
     crop_w = 473
     MEAN = [0.485, 0.456, 0.406]
@@ -174,14 +169,14 @@ if __name__ == "__main__":
     std = [item * VALUE_SCALE for item in STD]
     base_size = 512
     scales = [1.0]
+    save = True
     save_path = '/mnt/c/Users/Ignasi/Downloads/argus_saved/'
-    colors_path = "extern/pyconvsegnet/dataset/ade20k/ade20k_colors.txt"
     alpha = 0.5
     error_red = True
     verbose = True
 
-    main(   data_path, downsample, argus_labels, layers, 
+    main(   data_path, resize_height, resize_width, layers, 
             classes, ade20k_labels, zoom_factor, backbone_output_stride, 
             backbone_net, pretrained_path, crop_h, crop_w,
-            mean, std, base_size, scales, save_path, 
-            colors_path, alpha, error_red, verbose)
+            mean, std, base_size, scales, save,
+            save_path, alpha, error_red, verbose)

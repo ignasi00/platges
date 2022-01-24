@@ -6,14 +6,14 @@ VALUE_SCALE = 255
 
 
 DATA_PATH = '/mnt/c/Users/Ignasi/Downloads/ArgusNL'
-DOWNSAMPLE = 4
+DOWNSAMPLE = 4 # TODO: change
 
 LAYERS = 152
-CLASSES = 150
+CLASSES = 150 # TODO: change default
 ZOOM_FACTOR = 8
 BACKBONE_OUTPUT_STRIDE = 8
 BACKBONE_NET = "pyconvresnet"
-PRETRAINED_PATH = '/home/ignasi/platges/extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
+PRETRAINED_PATH = '/home/ignasi/platges/extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth' # TODO: change default
 
 CROP_H = 473
 CROP_W = 473
@@ -28,7 +28,7 @@ SCALES = [1.0]
 
 SAVE_PATH = '/mnt/c/Users/Ignasi/Downloads/argus_saved/'
 
-COLORS_PATH = "extern/pyconvsegnet/dataset/ade20k/ade20k_colors.txt"
+COLORS_PATH = "extern/pyconvsegnet/dataset/ade20k/ade20k_colors.txt" # TODO: change
 ALPHA = 0.5
 ERROR_RED = True
 
