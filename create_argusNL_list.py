@@ -45,16 +45,16 @@ def ArgusNL_list(folder_path, save_path=None, img_ext=None, seg_ext=None, cls_ex
 if __name__ == "__main__":
     # TODO: random seed fixing
 
-    folder_path = '/mnt/c/Users/Ignasi/Downloads/ArgusNL'
+    folder_path = '/home/usuaris/imatge/ignasi.nogueiras/datasets/argusNL'
     VERBOSE = True
     img_ext = '.jpg'
     seg_ext = '.segments.pkl'
     cls_ext = '.classes.pkl'
 
 
-    save_path_all = "/home/ignasi/platges/data_lists/argusNL_all.csv"
-    save_path_train = "/home/ignasi/platges/data_lists/argusNL_train.csv"
-    save_path_test = "/home/ignasi/platges/data_lists/argusNL_test.csv"
+    save_path_all = "./data_lists/argusNL_all.csv"
+    save_path_train = "./data_lists/argusNL_train.csv"
+    save_path_test = "./data_lists/argusNL_test.csv"
     probs = [0.7, 0.3]
 
 

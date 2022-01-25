@@ -42,4 +42,6 @@ cython_debug/
 /extern/*/
 informes/20211117reunio.pptx
 /wandb/*
+nohup.out
+model_parameters/*.pth
 
