@@ -9,7 +9,9 @@ KFOLDS_K = 5
 RESIZE_HEIGHT = int(1024 / 2)
 RESIZE_WIDTH = int(1392 / 2)
 CROP_HEIGHT = 473
+CROP_HEIGHT_IDX = 59
 CROP_WIDTH = 473
+CROP_WIDTH_IDX = 59
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
 VALUE_SCALE = 255
@@ -36,8 +38,8 @@ CUDA = False
 
 DOCTEXT = f"""
 Usage:
-  segmentation_train argus pyconvsegnet [--data_path=<dp>] [--train_prob=<tp>] [--resize_h=<rh>] [--resize_w=<rw>] [--crop_h=<ch>] [--crop_w=<cw>] [--mean=<m>...] [--std=<s>...] [--value_scale=<vs>] [--batch_size=<bs>] [--layers=<l>] [--num_classes=<nc>] [--zoom_factor=<zf>] [--backbone_output_stride=<bos>] [--backbone_net=<bn>] [--pretrained_path=<pp>] [--learning_rate=<lr>] [--experiment_name=<en>] [--entity=<e>] [--log_freq=<lf>] [--num_epochs=<ne>] [--val_epoch_freq=<vef>] [--early_stop_memory=<esm>] [--output_filename=<of>] [--cuda]
-  segmentation_train argus pyconvsegnet kfolds [--data_path=<dp>] [--kfolds_k=<kk>] [--resize_h=<rh>] [--resize_w=<rw>] [--crop_h=<ch>] [--crop_w=<cw>] [--mean=<m>...] [--std=<s>...] [--value_scale=<vs>] [--batch_size=<bs>] [--layers=<l>] [--num_classes=<nc>] [--zoom_factor=<zf>] [--backbone_output_stride=<bos>] [--backbone_net=<bn>] [--pretrained_path=<pp>] [--learning_rate=<lr>] [--experiment_name=<en>] [--entity=<e>] [--log_freq=<lf>] [--num_epochs=<ne>] [--val_epoch_freq=<vef>] [--early_stop_memory=<esm>] [--output_filename=<of>] [--cuda]
+  segmentation_train argus pyconvsegnet [--data_path=<dp>] [--train_prob=<tp>] [--resize_h=<rh>] [--resize_w=<rw>] [--crop_h=<ch>|--crop_h_idx=<chi>] [--crop_w=<cw>|--crop_w_idx=<cwi>] [--mean=<m>...] [--std=<s>...] [--value_scale=<vs>] [--batch_size=<bs>] [--layers=<l>] [--num_classes=<nc>] [--zoom_factor=<zf>] [--backbone_output_stride=<bos>] [--backbone_net=<bn>] [--pretrained_path=<pp>] [--learning_rate=<lr>] [--experiment_name=<en>] [--entity=<e>] [--log_freq=<lf>] [--num_epochs=<ne>] [--val_epoch_freq=<vef>] [--early_stop_memory=<esm>] [--output_filename=<of>] [--cuda]
+  segmentation_train argus pyconvsegnet kfolds [--data_path=<dp>] [--kfolds_k=<kk>] [--resize_h=<rh>] [--resize_w=<rw>] [--crop_h=<ch>|--crop_h_idx=<chi>] [--crop_w=<cw>|--crop_w_idx=<cwi>] [--mean=<m>...] [--std=<s>...] [--value_scale=<vs>] [--batch_size=<bs>] [--layers=<l>] [--num_classes=<nc>] [--zoom_factor=<zf>] [--backbone_output_stride=<bos>] [--backbone_net=<bn>] [--pretrained_path=<pp>] [--learning_rate=<lr>] [--experiment_name=<en>] [--entity=<e>] [--log_freq=<lf>] [--num_epochs=<ne>] [--val_epoch_freq=<vef>] [--early_stop_memory=<esm>] [--output_filename=<of>] [--cuda]
   segmentation_train -h | --help
 
 
@@ -60,7 +62,9 @@ Options:
   --resize_h=<rh>                       Int. The height to resize the input image to [default: {RESIZE_HEIGHT}].
   --resize_w=<rw>                       Int. The width to resize the input image to [default: {RESIZE_WIDTH}].
   --crop_h=<ch>                         Int. The height of the crops the network will process [default: {CROP_HEIGHT}].
+  --crop_h_idx=<chi>                    Int. PyConvSegNet needs a 8*N+1 crop size, this allows to set N, set to 59 for 473.
   --crop_w=<cw>                         Int. The width of the crops the network will process [default: {CROP_WIDTH}].
+  --crop_w_idx=<cwi>                    Int. PyConvSegNet needs a 8*N+1 crop size, this allows to set N, set to 59 for 473.
   --mean=<m>                            Float vector. PyConvSegNet means [default: {' '.join([str(x) for x in MEAN])}].
   --std=<s>                             Float vector. PyConvSegNet standar deviations [default: {' '.join([str(x) for x in STD])}].
   --value_scale=<vs>                    Float. PyConvSegNet scale [default: {VALUE_SCALE}].
@@ -110,8 +114,8 @@ def parse_args(argv):
         #
         resize_height = int(opts['--resize_h'])
         resize_width = int(opts['--resize_w'])
-        crop_height = int(opts['--crop_h'])
-        crop_width = int(opts['--crop_w'])
+        crop_height = int(opts['--crop_h']) if opts['--crop_h_idx'] is None else 1 + 8 * int(opts['--crop_h_idx'])
+        crop_width = int(opts['--crop_w']) if opts['--crop_w_idx'] is None else 1 + 8 * int(opts['--crop_w_idx'])
         mean = [float(x) for x in opts['--mean']]
         std = [float(x) for x in opts['--std']]
         value_scale = float(opts['--value_scale'])
