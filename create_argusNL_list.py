@@ -52,9 +52,9 @@ if __name__ == "__main__":
     cls_ext = '.classes.pkl'
 
 
-    save_path_all = "/home/ignasi/platges/data_lists/argusNL_all.csv"
-    save_path_train = "/home/ignasi/platges/data_lists/argusNL_train.csv"
-    save_path_test = "/home/ignasi/platges/data_lists/argusNL_test.csv"
+    save_path_all = "./data_lists/argusNL_all.csv"
+    save_path_train = "./data_lists/argusNL_train.csv"
+    save_path_test = "./data_lists/argusNL_test.csv"
     probs = [0.7, 0.3]
 
 
