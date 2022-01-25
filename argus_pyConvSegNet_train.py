@@ -118,6 +118,9 @@ def save_model(logger, model, epoch, filename, imgs):
 def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_width, mean, std, value_scale, batch_size,
             layers, num_classes, zoom_factor, backbone_output_stride, backbone_net, pretrained_path, learning_rate, 
             experiment_name, entity, log_freq, num_epochs, val_epoch_freq, early_stop_memory, filename, cuda):
+
+    assert crop_height <= resize_height
+    assert crop_width <= resize_width
     
     train_dataset, val_dataset = build_datasets(data_path, train_prob, default_value=-1)
 
@@ -138,7 +141,7 @@ def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_w
 
     metrics_dict = {'mIoU' : torch_mIoU}
 
-    early_stoper = ValidationEpochDivergenceStop(epochs=early_stop_memory, criteria=min)
+    early_stoper = ValidationEpochDivergenceStop(epochs=early_stop_memory, criteria=min, min_epochs=9) # TODO: min_epoch as parameter
 
     MODEL = "argusNL_pyConvSegNet"
     config_summary = {
@@ -194,7 +197,7 @@ def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_w
         epoch_log = logger.log_epoch(epoch, step=None, commit=True)
         
         try:
-            if early_stoper.doStop(epoch_log['epoch_mean_val_loss']) : break
+            if early_stoper.doStop(epoch_log['epoch_mean_val_loss'], epoch) : break
         except:
             continue
 
