@@ -4,7 +4,7 @@ import wandb
 
 class WandB_logger():
 
-    def __init__(self, project_name, experiment_name, entity, first_epoch=1):
+    def __init__(self, project_name, experiment_name, entity):
         # start a new run of project_name
         
         # wandb.init creates (and return) a wandb.Run object available on wandb.run
@@ -14,8 +14,6 @@ class WandB_logger():
         self.experiment_name = experiment_name
         
         self.epoch_summary = dict()
-        self.best_summary = dict()
-        self.best_summary_epochs = dict()
 
     def watch_model(self, model, log="all", log_freq=10):
         # watch a given run
@@ -43,15 +41,8 @@ class WandB_logger():
             epoch_log[f'epoch_mean_{key}'] = sum(values) / len(values)
             epoch_log[f'epoch_min_{key}'] = min(values)
             epoch_log[f'epoch_max_{key}'] = max(values)
-            try:
-                if self.best_summary[key] > epoch_log[f'epoch_mean_{key}']:
-                    self.best_summary[key] = epoch_log[f'epoch_mean_{key}']
-                    self.best_summary_epochs[f'best_{key}'] = epoch
-            except:
-                self.best_summary[key] = epoch_log[f'epoch_mean_{key}']
-                self.best_summary_epochs[f'best_{key}'] = epoch
 
-        wandb.log({'epoch_idx' : epoch}, setp=step, commit=False)
+        wandb.log({'epoch_idx' : epoch}, step=step, commit=False)
         wandb.log(epoch_log, step=step, commit=commit)
         
         self.epoch_summary = dict()
@@ -62,13 +53,6 @@ class WandB_logger():
         # log on a given run single final values like best scores (overwritting) or config
         for key, value in dict_data.items():
             wandb.run.summary[key] = value
-    
-    def summary_metrics(self):
-        # log on a given run single final values like best scores (overwritting) or config
-        for key, value in self.best_summary.items():
-            wandb.run.summary[key] = value
-        for key, value in self.best_summary_epochs.items():
-            wandb.run.summary[f"{key}_epoch"] = value
 
     def save_model(self, model_file, aliases=None):
         # Globaly save the current model on the experiment_name entry of "model_parameters"
@@ -83,9 +67,3 @@ class WandB_logger():
         aliases = ['latest'] + aliases
 
         wandb.log_artifact(model_io, aliases=aliases)
-
-    def update_models(self):
-        for key, values in self.best_summary_epochs.items():
-            model_io = wandb.Api().artifact(f"{self.experiment_name}:epoch_{value}")
-            artifact.aliases.append(key)
-            artifact.save()

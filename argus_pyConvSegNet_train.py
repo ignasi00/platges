@@ -156,6 +156,8 @@ def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_w
         # minibatch_size = 1 => image update, minibatch_size = len(dataloader) => epoch update, in between => minibatch update
         # TODO: big minibatch size needs other strategies with less simultaneus memory usage
         for id_batch, (imgs, ground_truth, imgs_path) in enumerate(train_dataloader): # a minibatch
+
+            if cuda: ground_truth = ground_truth.cuda(non_blocking=True)
             
             seg_imgs = process_data(segmentation_net, imgs, train=True, cuda=cuda)
             loss = loss_function(seg_imgs, ground_truth)
@@ -174,7 +176,9 @@ def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_w
 
         if epoch % val_epoch_freq == 0:
             for id_batch, (imgs, ground_truth, imgs_path) in enumerate(val_dataloader):
-                
+
+                if cuda: ground_truth = ground_truth.cuda(non_blocking=True)
+
                 with torch.no_grad():
                     seg_imgs = process_data(segmentation_net, imgs, train=False, cuda=cuda)
                     loss = loss_function(seg_imgs, ground_truth)
@@ -187,12 +191,14 @@ def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_w
                 val_idx = (epoch / val_epoch_freq - 1) * len(val_dataloader) + id_batch
                 logger.log({'val_epoch' : epoch, 'val_batch' : id_batch, 'val_idx' : val_idx}, step=None, commit=True)
             
-        epoch_log = logger.log_epoch(epoch, setp=None, commit=True)
+        epoch_log = logger.log_epoch(epoch, step=None, commit=True)
         
-        if early_stoper.doStop(epoch_log['epoch_mean_val_loss']) : break
+        try:
+            if early_stoper.doStop(epoch_log['epoch_mean_val_loss']) : break
+        except:
+            continue
 
-    logger.summary_metrics()
-    logger.update_models()
+    # TODO: define a global summary (best epoch and value) for metrics that can be better high or better low
 
 
 

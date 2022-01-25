@@ -3,7 +3,7 @@ from datetime import datetime
 from docopt import docopt
 
 
-DATA_PATH = '/home/ignasi/platges/data_lists/argusNL_all.csv'
+DATA_PATH = './data_lists/argusNL_all.csv'
 TRAIN_PROB = 0.7
 KFOLDS_K = 5
 RESIZE_HEIGHT = int(1024 / 2)
@@ -19,7 +19,7 @@ NUM_CLASSES = 3
 ZOOM_FACTOR = 8
 BACKBONE_OUTPUT_STRIDE = 8
 BACKBONE_NET = "pyconvresnet"
-PRETRAINED_PATH = '/home/ignasi/platges/extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
+PRETRAINED_PATH = './extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
 LEARNING_RATE = 0.0001
 
 EXPERIMENT_NAME = datetime.now().strftime("%Y%m%d_testsystem")
@@ -72,7 +72,7 @@ Options:
   --backbone_net=<bn>                   Backbone of the model [default: {BACKBONE_NET}].
   --pretrained_path=<pp>                Path to the file where the models weights are saved [default: {PRETRAINED_PATH}].
   --learning_rate=<lr>                  Float. Value that determine how much the gradients affect the parameters [default: {LEARNING_RATE}].
-  --experiment_name=<en>                Name that identify the current experminet on the wandb [defaulf: {EXPERIMENT_NAME}].
+  --experiment_name=<en>                Name that identify the current experminet on the wandb [default: {EXPERIMENT_NAME}].
   --entity=<e>                          Name that identify how is updating the wandb [default: {ENTITY}].
   --log_freq=<lf>                       Int. The number of optimization steps before logging gradients and parameters [default: {LOG_FREQ}].
   --num_epochs=<ne>                     Int. The maximum number of training epochs [default: {NUM_EPOCHS}].
