@@ -119,8 +119,8 @@ def main(data_path, train_prob, resize_height, resize_width, crop_height, crop_w
             layers, num_classes, zoom_factor, backbone_output_stride, backbone_net, pretrained_path, learning_rate, 
             experiment_name, entity, log_freq, num_epochs, val_epoch_freq, early_stop_memory, filename, cuda):
 
-    assert crop_height <= resize_height
-    assert crop_width <= resize_width
+    crop_height = min((resize_height // 8) * 8 + 1, crop_height)
+    crop_width = min((resize_width // 8) * 8 + 1, crop_width)
     
     train_dataset, val_dataset = build_datasets(data_path, train_prob, default_value=-1)
 
