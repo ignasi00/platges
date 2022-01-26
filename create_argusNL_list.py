@@ -45,7 +45,7 @@ def ArgusNL_list(folder_path, save_path=None, img_ext=None, seg_ext=None, cls_ex
 if __name__ == "__main__":
     # TODO: random seed fixing
 
-    folder_path = '/mnt/c/Users/Ignasi/Downloads/ArgusNL'
+    folder_path = '/home/usuaris/imatge/ignasi.nogueiras/datasets/argusNL'
     VERBOSE = True
     img_ext = '.jpg'
     seg_ext = '.segments.pkl'
