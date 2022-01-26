@@ -44,5 +44,5 @@ informes/20211117reunio.pptx
 /wandb/*
 nohup.out
 model_parameters/*.pth
-data_lists/*.*
+data_lists/*
 
