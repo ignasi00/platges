@@ -11,8 +11,8 @@ CLASSES = 'classes'
 
 
 def _tabulate_files(folder_path, img_ext=None, seg_ext=None, cls_ext=None):
-    img_ext = img_ext or '.jpg'
-    seg_ext = seg_ext or '.segments.pkl' # TODO: maybe converting pkl to pt could speed all up
+    img_ext = img_ext or '.JPG'
+    seg_ext = seg_ext or '.segments.pkl' # TODO: maybe converting pkl to pt could speed all up; platgesbcn made compatible with argusNL
     cls_ext = cls_ext or '.classes.pkl'
 
     folder_path = os.path.abspath(folder_path)
@@ -32,7 +32,7 @@ def _tabulate_files(folder_path, img_ext=None, seg_ext=None, cls_ext=None):
 def save_list(save_path, list_of_items):
     list_of_items.to_csv(save_path, header=False, index=False, columns=[IMAGES, SEGMENTS, CLASSES])
 
-def ArgusNL_list(folder_path, save_path=None, img_ext=None, seg_ext=None, cls_ext=None):
+def platgesbcn_list(folder_path, save_path=None, img_ext=None, seg_ext=None, cls_ext=None):
     list_of_items = _tabulate_files(folder_path, img_ext=img_ext, seg_ext=seg_ext, cls_ext=cls_ext)
     if save_path is not None : save_list(save_path, list_of_items)
     return list_of_items
@@ -41,20 +41,22 @@ def ArgusNL_list(folder_path, save_path=None, img_ext=None, seg_ext=None, cls_ex
 if __name__ == "__main__":
     # TODO: random seed fixing
 
-    folder_path = '/mnt/c/Users/Ignasi/Downloads/ArgusNL/'
+    folder_path = '/mnt/c/Users/Ignasi/Downloads/platgesbcn2021/'
+    #folder_path = '/mnt/c/Users/Ignasi/Downloads/platgesbcn2021_fine/images/useful/'
+    #folder_path = '/mnt/c/Users/Ignasi/Downloads/platgesbcn2021_wide/images/useful/'
     VERBOSE = True
-    img_ext = '.jpg'
+    img_ext = '.JPG'
     seg_ext = '.segments.pkl'
     cls_ext = '.classes.pkl'
 
 
-    save_path_all = "./data_lists/argusNL_all.csv"
-    save_path_train = "./data_lists/argusNL_train.csv"
-    save_path_test = "./data_lists/argusNL_test.csv"
+    save_path_all = "./data_lists/platgesbcn2021_all.csv"
+    save_path_train = "./data_lists/platgesbcn2021_train.csv"
+    save_path_test = "./data_lists/platgesbcn2021_test.csv"
     probs = [0.7, 0.3]
 
 
-    list_of_lists = ArgusNL_list(folder_path, save_path=save_path_all, img_ext=img_ext, seg_ext=seg_ext, cls_ext=cls_ext)
+    list_of_lists = platgesbcn_list(folder_path, save_path=save_path_all, img_ext=img_ext, seg_ext=seg_ext, cls_ext=cls_ext)
 
     train_list, test_list = split_pandas(list_of_lists, probs=probs)
     save_list(save_path_train, train_list)

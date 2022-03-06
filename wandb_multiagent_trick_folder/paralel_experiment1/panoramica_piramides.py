@@ -1,0 +1,1 @@
+../../panoramica_piramides.py

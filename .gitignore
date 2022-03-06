@@ -40,9 +40,11 @@ cython_debug/
 
 
 /extern/*/
-informes/20211117reunio.pptx
 /wandb/*
 nohup.out
+nohup*.out
 model_parameters/*.pth
 data_lists/*
+outputs/*/
+#wandb_multiagent_trick_folder/
 

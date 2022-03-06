@@ -1,39 +1,47 @@
 
 import cv2
 import numpy as np
-import pandas as pd
-import pickle
 import torch
 from torch.utils.data import Dataset
 
+from .numpy_instances_dataset import NumpyInstancesDataset
+from .wrapping_datasets.label_mapping_dataset import LabelListMappingDataset
 
-# Constants only used internally:
-IMAGES = 'images'
-SEGMENTS = 'segments'
-CLASSES = 'classes'
 
+WATER_ID = 1    # 21 # Indexes from ADE20K that does not colide with ArgusNL and there is a good color selected.
+SAND_ID = 2     # 46
+OTHERS_ID = 0   #    # 0 does not overlap either.
+
+LABELS_P = {
+    'sandbeach' : SAND_ID,
+    'sky' : OTHERS_ID,
+    'watersea' : WATER_ID,
+    'objectdune' : SAND_ID,
+    'objectbeach' : SAND_ID,
+    'vegetation' : OTHERS_ID,
+    'waterpool' : WATER_ID,
+    'sanddune' : SAND_ID,
+    'objectsea' : WATER_ID
+}
 
 class ArgusNLDataset(Dataset):
 
-    def __init__(self, list_path):
-        self.table_of_items = pd.read_csv(list_path, header=None, index_col=False, names=[IMAGES, SEGMENTS, CLASSES])
-    
+    def __init__(self, list_path, data_root='', read_flag=cv2.IMREAD_COLOR, labels_map=None, default_value=-1):
+        labels_map = labels_map or LABELS_P
+
+        first_dataset = NumpyInstancesDataset(list_path, data_root, read_flag)
+        self.base_dataset = LabelListMappingDataset(first_dataset, labels_map, modified_indexs=[2], default_value=default_value)
+
     def __getitem__(self, idx):
-
-        rows = self.table_of_items.iloc[idx]
-        img_path, seg_path, cls_path = [rows[IMAGES], rows[SEGMENTS], rows[CLASSES]]
-
-        image = cv2.imread(img_path, cv2.IMREAD_COLOR) # TODO: what is the image shape? (#row, #col, #color) (shape = H, W, 3)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image, segments, classes, img_path = self.base_dataset[idx]
         image = image[8:-8, :, :] # there is a cropped version with image filename prefix cropped_
         image = np.float32(image)
 
-        with open(seg_path, 'rb') as f:
-            segments = pickle.load(f, encoding='latin1') # ArgusNL: image mask of superpixels annoted with the index of the classes vector
-        with open(cls_path, 'rb') as f:
-            classes = pickle.load(f) #ArgusNL: vector that contains the categorical classes (with repetitions) of the previous superpixels
-            
-        return image, segments, classes, img_path
+        mask = segments.copy()
+        for gt_idx, gt_cls in enumerate(classes):
+            mask[segments == gt_idx] = gt_cls
 
+        return image, mask, classes, img_path
+    
     def __len__(self):
-        return len(self.table_of_items.index)
+        return len(self.base_dataset)

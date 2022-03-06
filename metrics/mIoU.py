@@ -4,7 +4,7 @@ import torch
 
 
 # TODO: variant with a "presence on target" ponderation
-def mIoU(ground_truth, seg_img):
+def mIoU(seg_img, ground_truth):
 
     ground_truth = np.array(ground_truth).ravel()
     seg_img = np.array(seg_img).ravel()
@@ -23,10 +23,11 @@ def mIoU(ground_truth, seg_img):
     return np.mean(v_IoU)
 
 # TODO: variant using torch (GPU-friendly)
-def torch_mIoU(ground_truth, seg_img):
+def torch_mIoU(seg_img, ground_truth):
 
     ground_truth = ground_truth.view(-1)
-    seg_img = seg_img.argmax(dim=1).view(-1)
+    #seg_img = seg_img.argmax(dim=1)
+    seg_img = seg_img.view(-1)
     v_IoU = []
 
     # only targeded classes are used

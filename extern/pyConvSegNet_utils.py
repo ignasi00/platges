@@ -1,6 +1,7 @@
 
 import cv2
 import numpy as np
+import torch
 
 from extern.pyconvsegnet.tool.test import scale_process, colorize
 
@@ -34,6 +35,7 @@ def apply_net_eval_cpu(model, input_, classes, crop_h, crop_w, mean, std, base_s
     prediction /= len(scales)
     prediction = np.argmax(prediction, axis=2)
     output = np.uint8(prediction)
+    output = torch.Tensor(output).type(torch.uint8)
 
     return output
 
