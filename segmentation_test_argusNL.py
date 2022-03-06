@@ -57,23 +57,24 @@ params = SimpleNamespace(
     list_path = f"{LIST_PATH}",
     outputs_root = f"{OUTPUTS_ROOT}",
     model_outputs_root = f"{MODELS_ROOT}",
-    # PyConvSegNet params:
-    batch_size = 1,
-    layers = 152,
-    num_classes_pretrain=150,
-    zoom_factor = 8,
-    base_size = 512,
-    scales = [1.0],
-    backbone_output_stride = 8,
-    backbone_net = "pyconvresnet",
-    pretrained_back_path = None,
-    pretrained_path = None,
-    # Params:
+    # Modifiable hyperparams:
     resize_height = 512,
     resize_width = 696,
     crop_h = 473,
     crop_w = 473,
-    funnel_map = True
+    funnel_map = True,
+    batch_size = 1,
+    zoom_factor = 8,
+    base_size = 512,
+    scales = [1.0],
+    # PyConvSegNet hyperparams:
+    layers = 152,
+    num_classes_pretrain=150,
+    backbone_output_stride = 8,
+    backbone_net = "pyconvresnet",
+    # Pre-trained
+    pretrained_back_path = None,
+    pretrained_path = None
 )
 
 
@@ -99,16 +100,17 @@ def build_model(layers, num_classes_pretrain, num_classes, zoom_factor, backbone
         backbone.load_state_dict(checkpoint, strict=False)
 
     head = nn.Conv2d(num_classes_pretrain, num_classes, kernel_size=1)
-    if funnel_map is not None and isinstance(funnel_map, dict):
+    model = nn.Sequential(backbone, head)
+
+    if pretrained_path is not None:
+        checkpoint = torch.load(pretrained_path, map_location=torch.device('cpu'))
+        model.load_state_dict(checkpoint, strict=False)
+        
+    elif funnel_map is not None and isinstance(funnel_map, dict):
         head.weight.data = torch.zeros(head.weight.shape)
         for out, in_ in funnel_map.items():
             head.weight.data[out, :, 0, 0] += F.one_hot(torch.LongTensor(in_), num_classes=num_classes_pretrain).sum(dim=0).squeeze()
         # head.weight.data[head.weight == 0] = torch.randn(head.weight[head.weight == 0].shape) * 1e-3
-
-    model = nn.Sequential(backbone, head)
-    if pretrained_path is not None:
-        checkpoint = torch.load(pretrained_path, map_location=torch.device('cpu'))
-        model.load_state_dict(checkpoint, strict=False)
 
     return model
 
@@ -116,7 +118,7 @@ def build_model_applier(segmentation_net, num_classes, crop_h, crop_w, mean, std
     return lambda img : apply_net_eval_cpu(segmentation_net, img, num_classes, crop_h, crop_w, mean, std, base_size, scales)
 
 def get_mean_and_std(dataset):
-    # TODO
+    # TODO: As a dataset is used, it should be enough to estmate them. On per sample inference, it should be a parameter obtained from all the training data.
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
     return mean, std
@@ -165,7 +167,7 @@ def main(list_path, outputs_root, resize_height, resize_width, crop_h, crop_w, b
                 output = model_applier(input_)
                 target = target.unsqueeze(dim=0)
                 output = output.unsqueeze(dim=0)
-                loss = criterion(output.clone().float(), target)
+                loss = criterion(output.clone().float(), target) # Wrong because something => always 1
                 
                 # When python optimize the runtime, the logger update happens at the end of the epoch
                 argusNL_seg_local_logger.update_epoch_log(output, target, loss, VERBOSE=VERBOSE_BATCH)
@@ -184,7 +186,7 @@ def main(list_path, outputs_root, resize_height, resize_width, crop_h, crop_w, b
     ##############################################################################################
 
     ####################################### -------------- #######################################
-    print(local_logger.get_last_epoch_log())
+    print(argusNL_seg_local_logger.get_last_epoch_log())
     ##############################################################################################
 
 

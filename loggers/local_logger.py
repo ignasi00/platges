@@ -57,7 +57,7 @@ class LocalLogger():
         
         if VERBOSE == True:
             metric0_name = list(self.metric_funct_dict.keys())[0]
-            metric0 = self.log[metric0][-1]
+            metric0 = self.log[metric0_name][-1]
 
             print(f"Train [epoch_{len(self.log[LOSS])}: 100%]: num_updates={self.epoch_log[NITERATIONS]}, {metric0_name}={metric0:.1f}, loss={loss:.2f}")
 
