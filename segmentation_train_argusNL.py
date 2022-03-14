@@ -91,7 +91,7 @@ params = SimpleNamespace(
 )
 
 
-def build_train_dataset(list_path, resize_height, resize_width, mean, std, scale_limit, shift_limit, rotate_limit):
+def build_train_dataset(list_path, resize_height, resize_width, crop_height, crop_width, mean, std, scale_limit, shift_limit, rotate_limit):
     argusNL_dataset = ArgusNLDataset(list_path)
 
     transforms_list = [
