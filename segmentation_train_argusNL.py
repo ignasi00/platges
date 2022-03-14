@@ -164,8 +164,23 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
     argusNL_seg_train_dataset = build_train_dataset(list_path_train, resize_height, resize_width, crop_h, crop_w, mean, std, scale_limit, shift_limit, rotate_limit)
     argusNL_seg_val_dataset = build_val_dataset(list_path_val, resize_height, resize_width, crop_h, crop_w, mean, std)
 
-    argusNL_seg_train_dataloader = DataLoader(argusNL_seg_train_dataset, batch_size=min(batch_size, MAX_BATCH_SIZE))
-    argusNL_seg_val_dataloader = DataLoader(argusNL_seg_val_dataset, batch_size=min(batch_size, MAX_BATCH_SIZE))
+    def collate_fn(batch):
+        inputs = []
+        targets = []
+
+        for input_, target in batch:
+            inputs.append(torch.FloatTensor(input_))
+            targets.append(torch.IntTensor(target))
+
+        inputs = torch.stack(inputs)
+        inputs.to(device)
+        targets = torch.stack(targets)
+        targets.to(device)
+
+        return inputs, targets
+
+    argusNL_seg_train_dataloader = DataLoader(argusNL_seg_train_dataset, batch_size=min(batch_size, MAX_BATCH_SIZE), collate_fn=collate_fn)
+    argusNL_seg_val_dataloader = DataLoader(argusNL_seg_val_dataset, batch_size=min(batch_size, MAX_BATCH_SIZE), collate_fn=collate_fn)
 
     model = build_model(
         layers=layers,
@@ -227,14 +242,16 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
             if m.__class__.__name__.startswith('Dropout') or m.__class__.__name__.startswith('BatchNorm'):
                 m.train()
 
-        last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, device=device, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
+        #last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, device=device, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
+        last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
         wandb_logger.log(last_train_epoch_log, prefix="train_", step=epoch)
 
         model.train()
         model.eval()
 
         with torch.no_grad():
-            last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, device=device, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
+            #last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, device=device, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
+            last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
             wandb_logger.log(last_val_epoch_log, prefix="valid_", step=epoch)
         
         # Save model
