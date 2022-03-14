@@ -182,7 +182,7 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
     criterion = DiceLoss() # FocalLoss() # Crossentropy # TODO: selector
 
     optimizer_class = torch.optim.Adam
-    optimizer_params = dict(lr=lr, betas=(0.9, 0.999), weight_decay=0)
+    optimizer_params = dict(lr=learning_rate, betas=(0.9, 0.999), weight_decay=0)
     optimizer = optimizer_class(model.parameters(), **optimizer_params)
 
     metric_funct_dict = {'mIoU' : torch_mIoU}
