@@ -177,6 +177,9 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
         targets = torch.stack(targets)
         targets = targets.to(device)
 
+        print(inputs.shape)
+        print(targets.shape)
+
         return inputs, targets
 
     argusNL_seg_train_dataloader = DataLoader(argusNL_seg_train_dataset, batch_size=min(batch_size, MAX_BATCH_SIZE), collate_fn=collate_fn)

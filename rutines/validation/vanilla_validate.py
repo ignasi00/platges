@@ -1,6 +1,6 @@
 
 def vanilla_validate(model, criterion, dataloader, local_logger, device=None, *, VERBOSE_BATCH=False, VERBOSE_END=False):
-    device = device or torch.device('cpu')
+    device = device # or torch.device('cpu')
     
     #model.eval()
     local_logger.new_epoch()
@@ -8,8 +8,9 @@ def vanilla_validate(model, criterion, dataloader, local_logger, device=None, *,
     with torch.no_grad():
         for input_, target in dataloader:
             # Dataloader could send its output to the requiered device and set the dtype (see collate_fn)
-            input_.to(device)
-            target.to(device)
+            if device is not None:
+                input_.to(device)
+                target.to(device)
 
             output = model(input_)
             loss = criterion(output, target)
