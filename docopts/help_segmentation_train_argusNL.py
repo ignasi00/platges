@@ -111,5 +111,5 @@ def parse_args(argv):
             funnel_map = None
 
     
-    args = (list_path_train, list_path_val, outputs_root, models_path, model_name, batch_size, learning_rate, num_epochs, resize_height, resize_width, crop_height, crop_width, scale_limit, shift_limit, rotate_limit, zoom_factor, base_size, scales, funnel_map, layers, num_classes_pretrain, backbone_output_stride, backbone_net, pretrained_backbone_path, pretrained_path)
+    args = (list_path_train, list_path_val, outputs_root, models_path, model_name, batch_size, learning_rate, num_epochs, resize_height, resize_width, crop_height, crop_width, scale_limit, shift_limit, rotate_limit, zoom_factor, base_size, funnel_map, layers, num_classes_pretrain, backbone_output_stride, backbone_net, pretrained_backbone_path, pretrained_path)
     return args
