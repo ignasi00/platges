@@ -1,11 +1,15 @@
 
-def vanilla_validate(model, criterion, dataloader, local_logger, *, VERBOSE_BATCH=False, VERBOSE_END=False):
+def vanilla_validate(model, criterion, dataloader, local_logger, device=None, *, VERBOSE_BATCH=False, VERBOSE_END=False):
+    device = device or torch.device('cpu')
+    
     #model.eval()
     local_logger.new_epoch()
 
     with torch.no_grad():
         for input_, target in dataloader:
-            # Dataloader should send its output to the requiered device and set the dtype (see collate_fn)
+            # Dataloader could send its output to the requiered device and set the dtype (see collate_fn)
+            input_.to(device)
+            target.to(device)
 
             output = model(input_)
             loss = criterion(output, target)

@@ -6,9 +6,10 @@ from torch.utils.data import Dataset
 
 class TransformDataset(Dataset):
 
-    def __init__(self, dataset, transforms):
+    def __init__(self, dataset, transforms, drop_extra_params=False):
         self.dataset = dataset
         self.transforms = transforms
+        self.drop_extra_params = drop_extra_params
 
     def __getitem__(self, idx):
         data = self.dataset[idx]
@@ -16,6 +17,7 @@ class TransformDataset(Dataset):
         image = transformed["image"]
         mask = transformed["mask"]
 
+        if self.drop_extra_params : return image, mask
         return image, mask, *data[2:]
 
     def __len__(self):

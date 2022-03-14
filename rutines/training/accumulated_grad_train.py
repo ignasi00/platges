@@ -1,13 +1,17 @@
 
 
-def accumulated_grad_train(model, criterion, optimizer, dataloader, local_logger, batch_size, drop_last=True, *, VERBOSE_BATCH=False, VERBOSE_END=False):
+def accumulated_grad_train(model, criterion, optimizer, dataloader, local_logger, batch_size, device=None, drop_last=True, *, VERBOSE_BATCH=False, VERBOSE_END=False):
+    device = device or torch.device('cpu')
+
     #model.train()
     local_logger.new_epoch()
     processed_samples = 0
 
     model.zero_grad()
     for batch_idx, (input_, target) in enumerate(dataloader):
-        # Dataloader should send its output to the requiered device and set the dtype (see collate_fn)
+        # Dataloader could send its output to the requiered device and set the dtype (see collate_fn)
+        input_.to(device)
+        target.to(device)
 
         output = model(input_)
         loss = criterion(output, target)

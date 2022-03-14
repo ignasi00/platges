@@ -33,7 +33,7 @@ Options:
   -h --help                             Show this screen.
   --list_path=<lp>                      Str. List used to make the dataset.
   --data_root=<dr>                      Str. Root from where the List start to search images.
-  --outputs_root=<or>                    Str. Root folder where the output is stored.
+  --outputs_root=<or>                   Str. Root folder where the output is stored.
   --downsample=<d>                      Int. Downsampling factor [default: {DOWNSAMPLE}].
   --point_finder=<pf>                   Str. Name of the available point finders (| {' | '.join([str(x) for x in POINT_FINDER_NAME_OPTIONS])[:-1]}) [default: {POINT_FINDER_NAME}].
   --weights_path=<wp>                   Str. Path to the file where the point_finder parameters are stored if the point_finder allows them.

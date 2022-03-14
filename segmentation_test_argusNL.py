@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import os
 import pathlib
+import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,7 +14,7 @@ from types import SimpleNamespace
 
 from datasets.argusNL_dataset import ArgusNLDataset
 from datasets.wrapping_datasets.transforms_dataset import TransformDataset
-#from docopts.help_segmentation_test_argusNL import parse_args
+from docopts.help_segmentation_test_argusNL import parse_args
 from loggers.local_logger import LocalLogger
 from losses.dice_loss import DiceLoss
 from losses.focal_loss import FocalLoss
@@ -105,11 +106,12 @@ def build_model(layers, num_classes_pretrain, num_classes, zoom_factor, backbone
     if pretrained_path is not None:
         checkpoint = torch.load(pretrained_path, map_location=torch.device('cpu'))
         model.load_state_dict(checkpoint, strict=False)
-        
+
     elif funnel_map is not None and isinstance(funnel_map, dict):
         head.weight.data = torch.zeros(head.weight.shape)
         for out, in_ in funnel_map.items():
             head.weight.data[out, :, 0, 0] += F.one_hot(torch.LongTensor(in_), num_classes=num_classes_pretrain).sum(dim=0).squeeze()
+        head.weight.data[0, :, 0, 0] = (1 - head.weight.data[1:, :, 0, 0].sum(dim=0).squeeze()) / head.weight.data[1:, :, 0, 0].sum().squeeze()
         # head.weight.data[head.weight == 0] = torch.randn(head.weight[head.weight == 0].shape) * 1e-3
 
     return model
@@ -186,16 +188,43 @@ def main(list_path, outputs_root, resize_height, resize_width, crop_h, crop_w, b
     ##############################################################################################
 
     ####################################### -------------- #######################################
-    print(argusNL_seg_local_logger.get_last_epoch_log())
+    if VERBOSE_END : print(argusNL_seg_local_logger.get_last_epoch_log())
     ##############################################################################################
 
 
 if __name__ == "__main__":
 
     # TODO: docopts
+    (list_path, outputs_root, models_root, 
+    model_name, batch_size, resize_height, 
+    resize_width, crop_height, crop_width, 
+    zoom_factor, base_size, scales, 
+    funnel_map, layers, num_classes_pretrain, 
+    backbone_output_stride, backbone_net, 
+    pretrained_backbone_path, pretrained_path) = parse_args(sys.argv)
 
-    params.pretrained_back_path = '/home/ignasi/platges/extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
+
+    params.pretrained_back_path = pretrained_backbone_path
+    if params.pretrained_back_path is None and layers == 152 and num_classes_pretrain == 150 and backbone_output_stride == 8 and backbone_net == "pyconvresnet":
+        params.pretrained_back_path = '/home/ignasi/platges/extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
+    
+    params.pretrained_path = pretrained_path
+    
     params.funnel_map = FUNNEL_MAP if params.funnel_map == True else params.funnel_map
+    params.list_path = list_path or params.list_path
+    params.outputs_root = outputs_root or params.outputs_root
+    params.resize_height = resize_height or params.resize_height
+    params.resize_width = resize_width or params.resize_width
+    params.crop_h = crop_height or params.crop_h
+    params.crop_w = crop_width or params.crop_w
+    params.batch_size = batch_size or params.batch_size
+    params.layers = layers or params.layers
+    params.num_classes_pretrain = num_classes_pretrain or params.num_classes_pretrain
+    params.zoom_factor = zoom_factor or params.zoom_factor
+    params.base_size = base_size or params.base_size
+    params.scales = scales or params.scales
+    params.backbone_output_stride = backbone_output_stride or params.backbone_output_stride
+    params.backbone_net = backbone_net or params.backbone_net
 
 
     pathlib.Path(params.outputs_root).mkdir(parents=True, exist_ok=True)
