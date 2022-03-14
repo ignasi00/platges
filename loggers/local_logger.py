@@ -10,7 +10,7 @@ NITERATIONS = 'niterations'
 
 class LocalLogger():
 
-    def __init__(self, metric_funct_dict, size_dataset=None):
+    def __init__(self, metric_funct_dict, size_dataset=None, prefix=None):
         self.metric_funct_dict = metric_funct_dict
         self.epoch_log = {name : 0 for name in self.metric_funct_dict.keys()}
         self.epoch_log[LOSS] = 0
@@ -22,6 +22,7 @@ class LocalLogger():
             self.log[name] = list() # its length is the number of finished epochs
 
         self.size_dataset = size_dataset
+        self.prefix = prefix or ''
     
     def new_epoch(self):
         for key in self.epoch_log.keys():
@@ -43,9 +44,9 @@ class LocalLogger():
 
                 if isinstance(self.size_dataset, int):
                     epoch_completion = 100 * self.epoch_log[NTOKENS] / self.size_dataset # If sizr dataset => NTOKENS / size; If size data loader => NITERATIONS / size
-                    print(f"Train [epoch_{len(self.log[LOSS])}: {epoch_completion:.1f}%]: num_updates={self.epoch_log[NITERATIONS]}, {metric0_name}={metric0:.1f}, loss={loss:.2f}")
+                    print(f"{self.prefix} [epoch_{len(self.log[LOSS])}: {epoch_completion:.1f}%]: num_updates={self.epoch_log[NITERATIONS]}, {metric0_name}={metric0:.1f}, loss={loss:.2f}")
                 else:
-                    print(f"Train [epoch_{len(self.log[LOSS])}: ???%] num_updates={self.epoch_log[NITERATIONS]}, {metric0_name}={metric0:.1f}, loss={loss:.2f}")
+                    print(f"{self.prefix} [epoch_{len(self.log[LOSS])}: ???%] num_updates={self.epoch_log[NITERATIONS]}, {metric0_name}={metric0:.1f}, loss={loss:.2f}")
 
     def finish_epoch(self, VERBOSE=True):
         loss = self.epoch_log[LOSS] / self.epoch_log[NTOKENS]
@@ -59,7 +60,7 @@ class LocalLogger():
             metric0_name = list(self.metric_funct_dict.keys())[0]
             metric0 = self.log[metric0_name][-1]
 
-            print(f"Train [epoch_{len(self.log[LOSS])}: 100%]: num_updates={self.epoch_log[NITERATIONS]}, {metric0_name}={metric0:.1f}, loss={loss:.2f}")
+            print(f"{self.prefix} [epoch_{len(self.log[LOSS])}: 100%]: num_updates={self.epoch_log[NITERATIONS]}, {metric0_name}={metric0:.1f}, loss={loss:.2f}")
 
     def best_epochs(self, key=None, num_elems=1, offset=0, maximize=True):
         key = key or list(self.metric_funct_dict.keys())[0]

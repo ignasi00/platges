@@ -201,8 +201,8 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
     optimizer = optimizer_class(model.parameters(), **optimizer_params)
 
     metric_funct_dict = {'mIoU' : lambda seg_img, ground_truth : torch_mIoU(seg_img.argmax(dim=1), ground_truth)}
-    argusNL_seg_train_local_logger = LocalLogger(metric_funct_dict, len(argusNL_seg_train_dataset))
-    argusNL_seg_val_local_logger = LocalLogger(metric_funct_dict.copy(), len(argusNL_seg_val_dataset))
+    argusNL_seg_train_local_logger = LocalLogger(metric_funct_dict, len(argusNL_seg_train_dataset), prefix="train_")
+    argusNL_seg_val_local_logger = LocalLogger(metric_funct_dict.copy(), len(argusNL_seg_val_dataset), prefix="valid_")
 
     wandb_logger = WandbLogger(project_name, experiment_name, entity)
     wandb_logger.watch_model(model, log="all", log_freq=50)
@@ -329,6 +329,7 @@ if __name__ == "__main__":
 
 
     pathlib.Path(params.outputs_root).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(os.path.dirname(params.models_path)).mkdir(parents=True, exist_ok=True)
 
     main(
         params.experiment_name,
