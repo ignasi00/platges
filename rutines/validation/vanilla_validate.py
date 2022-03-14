@@ -1,4 +1,7 @@
 
+import torch
+
+
 def vanilla_validate(model, criterion, dataloader, local_logger, device=None, *, VERBOSE_BATCH=False, VERBOSE_END=False):
     device = device # or torch.device('cpu')
     
