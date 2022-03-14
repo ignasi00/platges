@@ -173,9 +173,9 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
             targets.append(torch.IntTensor(target))
 
         inputs = torch.stack(inputs)
-        inputs.to(device)
+        inputs = inputs.to(device)
         targets = torch.stack(targets)
-        targets.to(device)
+        targets = targets.to(device)
 
         return inputs, targets
 
