@@ -9,6 +9,7 @@ import json
 #MODEL_OUTPUTS_ROOT = None
 
 MODEL_NAME = "pyConvSegNet"
+CHECK_CROPS = True
 
 # Params:
 BATCH_SIZE = 1
@@ -36,7 +37,7 @@ BACKBONE_NET = "pyconvresnet"
 
 DOCTEXT = f"""
 Usage:
-  segmentation_train_argusNL.py [--list_path_train=<lpt>] [--list_path_val=<lpv>] [--outputs_root=<or>] [--models_path=<mp>] [--model_name=<mn>] [--batch_size=<bs>] [--learning_rate=<lr>] [--num_epochs=<ne>] [--resize_height=<rh>] [--resize_width=<rw>] [--crop_height=<ch>] [--crop_width=<cw>] [--scale_limit=<sl>] [--shift_limit=<shl>] [--rotate_limit=<rl>] [--zoom_factor=<zf>] [--funnel_map=<fm>] [--layers=<l>] [--num_classes_pretrain=<ncp>] [--backbone_output_stride=<bos>] [--backbone_net=<bn>] [--pretrained_backbone_path=<pbp>] [--pretrained_path=<pp>]
+  segmentation_train_argusNL.py [--list_path_train=<lpt>] [--list_path_val=<lpv>] [--outputs_root=<or>] [--models_path=<mp>] [--model_name=<mn>] [--batch_size=<bs>] [--learning_rate=<lr>] [--num_epochs=<ne>] [--resize_height=<rh>] [--resize_width=<rw>] [--crop_height=<ch>] [--crop_width=<cw>] [--scale_limit=<sl>] [--shift_limit=<shl>] [--rotate_limit=<rl>] [--zoom_factor=<zf>] [--funnel_map=<fm>] [--layers=<l>] [--num_classes_pretrain=<ncp>] [--backbone_output_stride=<bos>] [--backbone_net=<bn>] [--pretrained_backbone_path=<pbp>] [--pretrained_path=<pp>] [--check_crops=<cc>]
   segmentation_train_argusNL.py -h | --help
 
 Options:
@@ -64,7 +65,8 @@ Options:
   --backbone_net=<bn>                   Str. Model param. Name of the backbone network of the base model [default: {BACKBONE_NET}].
   --pretrained_backbone_path=<pbp>      Str. Model param. Path to the base network pretrained weights.
   --pretrained_path=<pp>                Str. Model param. Path to the full network pretrained weights.
-  
+  --check_crops=<cc>                    Bool. If True, makes crops valid [default: {CHECK_CROPS}].
+
 """
 
 
@@ -97,6 +99,10 @@ def parse_args(argv):
     pretrained_backbone_path = opts["--pretrained_backbone_path"]
     pretrained_path = opts["--pretrained_path"]
 
+
+    if opts['--check_crops'] == "True":
+        crop_height = ((crop_height - 1) // 8) * 8 + 1
+        crop_width = ((crop_width - 1) // 8) * 8 + 1
 
     if funnel_map == "True":
         funnel_map = True

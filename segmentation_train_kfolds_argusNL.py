@@ -325,12 +325,14 @@ def main(experiment_name, project_name, entity, lists_path, num_val_folds, outpu
         v_best_train.append(best_train)
         v_best_valid.append(best_valid)
 
-    best_fold = [elem['valid_mIoU'] for elem in v_best_valid]
-    best_fold = sorted([(i, score) for i, score in enumerate(best_fold)], key=lambda x : x[-1], reverse=True)[0][0]
+    #best_fold = [elem['valid_mIoU'] for elem in v_best_valid]
+    #best_fold = sorted([(i, score) for i, score in enumerate(best_fold)], key=lambda x : x[-1], reverse=True)[0][0]
 
     wandb_logger = WandbLogger(project_name, experiment_name, entity)
-    wandb_logger.summarize(v_best_train[best_fold])
-    wandb_logger.summarize(v_best_valid[best_fold])
+    #wandb_logger.summarize(v_best_train[best_fold])
+    #wandb_logger.summarize(v_best_valid[best_fold])
+    wandb_logger.summarize(sum([elem['train_mIoU'] for v_best_train]) / len(v_best_train))
+    wandb_logger.summarize(sum([elem['valid_mIoU'] for v_best_valid]) / len(v_best_valid))
 
 
 if __name__ == "__main__":

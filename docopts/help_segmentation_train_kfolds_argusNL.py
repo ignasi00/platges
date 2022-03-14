@@ -10,6 +10,7 @@ import json
 NUM_VAL_FOLDS = 1
 
 MODEL_NAME = "pyConvSegNet"
+CHECK_CROPS = True
 
 # Params:
 BATCH_SIZE = 1
@@ -65,6 +66,7 @@ Options:
   --backbone_net=<bn>                   Str. Model param. Name of the backbone network of the base model [default: {BACKBONE_NET}].
   --pretrained_backbone_path=<pbp>      Str. Model param. Path to the base network pretrained weights.
   --pretrained_path=<pp>                Str. Model param. Path to the full network pretrained weights.
+  --check_crops=<cc>                    Bool. If True, makes crops valid [default: {CHECK_CROPS}].
   
 """
 
@@ -98,6 +100,10 @@ def parse_args(argv):
     pretrained_backbone_path = opts["--pretrained_backbone_path"]
     pretrained_path = opts["--pretrained_path"]
 
+
+    if opts['--check_crops'] == "True":
+        crop_height = ((crop_height - 1) // 8) * 8 + 1
+        crop_width = ((crop_width - 1) // 8) * 8 + 1
 
     if funnel_map == "True":
         funnel_map = True

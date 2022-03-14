@@ -88,6 +88,6 @@ class LocalLogger():
         loss = self.log[LOSS][-1]
 
         if extra_notes is None:
-            print(f'| epoch {epoch:03d} | {metrics_str}{mode} loss={loss:.2f}')
+            print(f'\t| epoch {epoch:03d} | {metrics_str}{mode} loss={loss:.2f} |')
         else:
-            print(f'| epoch {epoch:03d} | {metrics_str}{mode} loss={loss:.2f} ({extra_notes})')
+            print(f'\t| epoch {epoch:03d} | {metrics_str}{mode} loss={loss:.2f} ({extra_notes}) |')
