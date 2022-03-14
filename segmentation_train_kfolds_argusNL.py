@@ -270,13 +270,17 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
     wandb_logger.update_model(f'epoch_{best_epoch}', ['best'])
 
     wandb_logger.summarize({'best_epoch' : best_epoch})
-    wandb_logger.summarize(argusNL_seg_train_local_logger.get_one_epoch_log(best_epoch, prefix="train_"))
-    wandb_logger.summarize(argusNL_seg_val_local_logger.get_one_epoch_log(best_epoch, prefix="valid_"))
-
-    wandb_logger.remove_models(except_alias=['best', 'latest'])
+    wandb_logger.summarize(argusNL_seg_train_local_logger.get_one_epoch_log(best_epoch, prefix=f"train_{fold + 1}-{num_folds}_"))
+    wandb_logger.summarize(argusNL_seg_val_local_logger.get_one_epoch_log(best_epoch, prefix=f"valid_{fold + 1}-{num_folds}_"))
 
     #model_path = wandb_logger.download_model(os.path.basename(models_path), os.path.dirname(models_path), alias='best')
     #model.load_state_dict(torch.load(model_path))
+    ##############################################################################################
+
+    ##############################################################################################
+    best_train = argusNL_seg_train_local_logger.get_one_epoch_log(best_epoch, prefix=f"train_")
+    best_valid = argusNL_seg_val_local_logger.get_one_epoch_log(best_epoch, prefix=f"valid_")
+    return best_train, best_valid
     ##############################################################################################
 
 
@@ -285,6 +289,9 @@ def main(experiment_name, project_name, entity, lists_path, num_val_folds, outpu
 
     ####################################### PREPROCESSING  #######################################
     mean, std = get_mean_and_std(build_concat_dataset(lists_path), value_scale=255)
+
+    v_best_train = []
+    v_best_valid = []
 
     folds = set(combinations(range(len(lists_path)), num_val_folds))
     num_folds = len(folds)
@@ -298,7 +305,7 @@ def main(experiment_name, project_name, entity, lists_path, num_val_folds, outpu
         val_lists = [lists_path[indx] for indx in indxs]
         argusNL_seg_val_dataset = build_val_dataset(val_lists, resize_height, resize_width, crop_h, crop_w, mean, std)
 
-        one_fold(
+        best_train, best_valid = one_fold(
             experiment_fold_name, project_name, entity, 
             argusNL_seg_train_dataset, argusNL_seg_val_dataset,
             outputs_root, models_path, 
@@ -311,6 +318,16 @@ def main(experiment_name, project_name, entity, lists_path, num_val_folds, outpu
             funnel_map, fold, num_folds, device=device, model_name=model_name, 
             VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END
             )
+
+        v_best_train.append(best_train)
+        v_best_valid.append(best_valid)
+
+    best_fold = [elem['valid_mIoU'] for elem in v_best_valid]
+    best_fold = sorted([(i, score) for i, score in enumerate(best_fold)], key=lambda x : x[-1], reverse=True)[0][0]
+
+    wandb_logger = WandbLogger(project_name, experiment_name, entity)
+    wandb_logger.summarize(v_best_train[best_fold])
+    wandb_logger.summarize(v_best_valid[best_fold])
 
 
 if __name__ == "__main__":
