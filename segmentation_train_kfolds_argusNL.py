@@ -246,7 +246,7 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
 
         #last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, device=device, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
         last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
-        wandb_logger.log(last_train_epoch_log, prefix=f"train_{fold + 1}-{num_folds}_")
+        wandb_logger.log(last_train_epoch_log, prefix=f"train_{fold + 1}-{num_folds}_", commit=False)
         argusNL_seg_train_local_logger.print_last_epoch_summary(mode='train')
 
         model.train()
@@ -255,14 +255,14 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
         with torch.no_grad():
             #last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, device=device, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
             last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
-            wandb_logger.log(last_val_epoch_log, prefix=f"valid_{fold + 1}-{num_folds}_")
+            wandb_logger.log(last_val_epoch_log, prefix=f"valid_{fold + 1}-{num_folds}_", commit=False)
             argusNL_seg_val_local_logger.print_last_epoch_summary(mode='valid')
         
         # Save model
         torch.save(model.state_dict(), models_path)
         wandb_logger.upload_model(models_path, aliases=[f'epoch_{epoch}'], wait=(epoch==(num_epochs-1)))
         
-        if save_epoch : wandb_logger.log({'epoch' : epoch})
+        wandb_logger.log({'epoch' : epoch})
 
     ##############################################################################################
 
