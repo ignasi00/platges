@@ -271,6 +271,8 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
     wandb_logger.summarize(argusNL_seg_train_local_logger.get_one_epoch_log(best_epoch, prefix="train_"))
     wandb_logger.summarize(argusNL_seg_val_local_logger.get_one_epoch_log(best_epoch, prefix="valid_"))
 
+    wandb_logger.remove_models(except_alias=['best', 'latest'])
+
     #model_path = wandb_logger.download_model(os.path.basename(models_path), os.path.dirname(models_path), alias='best')
     #model.load_state_dict(torch.load(model_path))
     ##############################################################################################

@@ -64,3 +64,10 @@ class WandbLogger():
         artifact_dir = artifact.download()
 
         return f"{output_dir}/{model_filename}"
+    
+    def remove_models(self, except_alias=None):
+        except_alias = except_alias or []
+
+        for version in wandb.run.logged_artifacts():
+            if not any(x in version.aliases for x in except_alias):
+                version.delete()

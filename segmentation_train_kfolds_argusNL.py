@@ -244,7 +244,7 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
 
         #last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, device=device, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
         last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
-        wandb_logger.log(last_train_epoch_log, prefix=f"train_{fold + 1}-{num_folds}")
+        wandb_logger.log(last_train_epoch_log, prefix=f"train_{fold + 1}-{num_folds}_")
         argusNL_seg_train_local_logger.print_last_epoch_summary(mode='train')
 
         model.train()
@@ -253,7 +253,7 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
         with torch.no_grad():
             #last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, device=device, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
             last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
-            wandb_logger.log(last_val_epoch_log, prefix=f"valid_{fold + 1}-{num_folds}")
+            wandb_logger.log(last_val_epoch_log, prefix=f"valid_{fold + 1}-{num_folds}_")
             argusNL_seg_val_local_logger.print_last_epoch_summary(mode='valid')
         
         # Save model
@@ -273,6 +273,8 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
     wandb_logger.summarize(argusNL_seg_train_local_logger.get_one_epoch_log(best_epoch, prefix="train_"))
     wandb_logger.summarize(argusNL_seg_val_local_logger.get_one_epoch_log(best_epoch, prefix="valid_"))
 
+    wandb_logger.remove_models(except_alias=['best', 'latest'])
+
     #model_path = wandb_logger.download_model(os.path.basename(models_path), os.path.dirname(models_path), alias='best')
     #model.load_state_dict(torch.load(model_path))
     ##############################################################################################
@@ -290,10 +292,10 @@ def main(experiment_name, project_name, entity, lists_path, num_val_folds, outpu
 
         experiment_fold_name = f'{experiment_name}_{fold + 1}-{num_folds}'
 
-        train_lists = [lists_path[indx] for indx in indxs]
+        train_lists = [lists_path[indx] for indx in range(len(lists_path)) if indx not in indxs]
         argusNL_seg_train_dataset = build_train_dataset(train_lists, resize_height, resize_width, crop_h, crop_w, mean, std, scale_limit, shift_limit, rotate_limit)
 
-        val_lists = [lists_path[indx] for indx in range(len(lists_path)) if indx not in indxs]
+        val_lists = [lists_path[indx] for indx in indxs]
         argusNL_seg_val_dataset = build_val_dataset(val_lists, resize_height, resize_width, crop_h, crop_w, mean, std)
 
         one_fold(
