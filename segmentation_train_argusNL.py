@@ -164,8 +164,8 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
     argusNL_seg_train_dataset = build_train_dataset(list_path_train, resize_height, resize_width, crop_h, crop_w, mean, std, scale_limit, shift_limit, rotate_limit)
     argusNL_seg_val_dataset = build_val_dataset(list_path_val, resize_height, resize_width, crop_h, crop_w, mean, std)
 
-    argusNL_seg_train_dataloader = DataLoader(argusNL_train_dataset, batch_size=min(batch_size, MAX_BATCH_SIZE), collate_fn=collate_fn)
-    argusNL_seg_val_dataloader = DataLoader(argusNL_val_dataset, batch_size=min(batch_size, MAX_BATCH_SIZE), collate_fn=collate_fn)
+    argusNL_seg_train_dataloader = DataLoader(argusNL_seg_train_dataset, batch_size=min(batch_size, MAX_BATCH_SIZE), collate_fn=collate_fn)
+    argusNL_seg_val_dataloader = DataLoader(argusNL_seg_val_dataset, batch_size=min(batch_size, MAX_BATCH_SIZE), collate_fn=collate_fn)
 
     model = build_model(
         layers=layers,
