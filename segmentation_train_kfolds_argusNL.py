@@ -28,6 +28,7 @@ from rutines.validation.vanilla_validate import vanilla_validate
 from extern.pyconvsegnet.model.pyconvsegnet import PyConvSegNet
 
 
+DATASET = 'argusNL'
 MAX_BATCH_SIZE = 4
 
 SEGMENTATION_PREFIX = 'seg_'
@@ -163,7 +164,7 @@ def get_mean_and_std(dataset, value_scale=255):
     std = [item * value_scale for item in std]
     return mean, std
 
-def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, argusNL_seg_val_dataset, outputs_root, models_path, resize_height, resize_width, crop_h, crop_w, mean, std, scale_limit, shift_limit, rotate_limit, batch_size, learning_rate, num_epochs, layers, num_classes_pretrain, zoom_factor, backbone_output_stride, backbone_net, pretrained_back_path, pretrained_path, funnel_map, fold, num_folds, device=None, model_name=None, VERBOSE_BATCH=True, VERBOSE_END=True):
+def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, argusNL_seg_val_dataset, outputs_root, models_path, resize_height, resize_width, crop_h, crop_w, mean, std, scale_limit, shift_limit, rotate_limit, batch_size, learning_rate, num_epochs, layers, num_classes_pretrain, zoom_factor, backbone_output_stride, backbone_net, pretrained_back_path, pretrained_path, funnel_map, fold, num_folds, device=None, model_name=None, save_epoch=False, VERBOSE_BATCH=True, VERBOSE_END=True):
     def collate_fn(batch):
         inputs = []
         targets = []
@@ -227,7 +228,8 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
         'backbone_output_stride' : backbone_output_stride,
         'backbone_net' : backbone_net,
         'model_name' : model_name,
-        'num_folds' : num_folds
+        'num_folds' : num_folds,
+        'dataset' : DATASET
         }
     hyperparameters['loss_type'] = type(criterion)
     hyperparameters['optim_type'] = type(optimizer)
@@ -258,7 +260,7 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
         
         # Save model
         torch.save(model.state_dict(), models_path)
-        wandb_logger.upload_model(models_path, aliases=[f'epoch_{epoch}'], wait=(epoch==(num_epochs-1)))
+        if save_epoch : wandb_logger.upload_model(models_path, aliases=[f'epoch_{epoch}'], wait=(epoch==(num_epochs-1)))
         
         wandb_logger.log({'epoch' : epoch})
 
@@ -315,7 +317,8 @@ def main(experiment_name, project_name, entity, lists_path, num_val_folds, outpu
             layers, num_classes_pretrain, zoom_factor, 
             backbone_output_stride, backbone_net, 
             pretrained_back_path, pretrained_path, 
-            funnel_map, fold, num_folds, device=device, model_name=model_name, 
+            funnel_map, fold, num_folds, device=device,
+            model_name=model_name, save_epoch=fold==0,
             VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END
             )
 

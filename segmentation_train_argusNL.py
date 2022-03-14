@@ -27,6 +27,7 @@ from rutines.validation.vanilla_validate import vanilla_validate
 from extern.pyconvsegnet.model.pyconvsegnet import PyConvSegNet
 
 
+DATASET = 'argusNL'
 MAX_BATCH_SIZE = 4
 
 SEGMENTATION_PREFIX = 'seg_'
@@ -225,7 +226,8 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
         'num_classes_pretrain' : num_classes_pretrain,
         'backbone_output_stride' : backbone_output_stride,
         'backbone_net' : backbone_net,
-        'model_name' : model_name
+        'model_name' : model_name,
+        'dataset' : DATASET
         }
     hyperparameters['loss_type'] = type(criterion)
     hyperparameters['optim_type'] = type(optimizer)
