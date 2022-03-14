@@ -284,7 +284,7 @@ if __name__ == "__main__":
 
     params.pretrained_back_path = pretrained_backbone_path
     if params.pretrained_back_path is None and layers == 152 and num_classes_pretrain == 150 and backbone_output_stride == 8 and backbone_net == "pyconvresnet":
-        params.pretrained_back_path = '/home/ignasi/platges/extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
+        params.pretrained_back_path = './extern/pyconvsegnet/ade20k_trainval120epochspyconvresnet152_pyconvsegnet.pth'
     
     params.pretrained_path = pretrained_path
     
