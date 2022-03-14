@@ -3,6 +3,7 @@ import albumentations as A
 import albumentations.pytorch
 import cv2
 from datetime import datetime
+from itertools import combinations # Or from more_itertools import distinct_combinations
 import numpy as np
 import os
 import pathlib
@@ -15,7 +16,7 @@ from types import SimpleNamespace
 
 from datasets.argusNL_dataset import ArgusNLDataset
 from datasets.wrapping_datasets.transforms_dataset import TransformDataset
-from docopts.help_segmentation_train_argusNL import parse_args
+from docopts.help_segmentation_train_kfolds_argusNL import parse_args
 from loggers.local_logger import LocalLogger
 from loggers.wandb_logger import WandbLogger
 from losses.dice_loss import DiceLoss
@@ -37,8 +38,7 @@ PROJECT_NAME = "platgesBCN"
 ENTITY = "ignasi00"
 EXPERIMENT_TYPE = "segments_argusNL"
 
-LIST_PATH_TRAIN = "./data_lists/argusNL_train.csv"
-LIST_PATH_VAL = "./data_lists/argusNL_test.csv"
+LISTS_PATH = ["./data_lists/argusNL_K1-5.csv", "./data_lists/argusNL_K2-5.csv", "./data_lists/argusNL_K3-5.csv", "./data_lists/argusNL_K4-5.csv", "./data_lists/argusNL_K5-5.csv"]
 OUTPUTS_ROOT = f"./outputs/{EXPERIMENT_TYPE}/"
 MODELS_ROOT = f"model_parameters/{EXPERIMENT_TYPE}/"
 
@@ -59,8 +59,8 @@ CLASSES_COLOR = {
 
 params = SimpleNamespace(
     # I/O params:
-    list_path_train = f"{LIST_PATH_TRAIN}",
-    list_path_val = f"{LIST_PATH_VAL}",
+    lists_path = LISTS_PATH,
+    num_val_folds=1,
     outputs_root = f"{OUTPUTS_ROOT}",
     models_path = f"{MODELS_ROOT}/{EXPERIMENT_TYPE}.pt",
     experiment_name = datetime.now().strftime(f"%Y%m%d%H%M%S_{EXPERIMENT_TYPE}"),
@@ -90,8 +90,18 @@ params = SimpleNamespace(
 )
 
 
-def build_train_dataset(list_path, resize_height, resize_width, crop_height, crop_width, mean, std, scale_limit, shift_limit, rotate_limit):
-    argusNL_dataset = ArgusNLDataset(list_path)
+def build_concat_dataset(lists_path):
+    argusNL_dataset = []
+    for list_path in lists_path:
+        argusNL_dataset.append(ArgusNLDataset(list_path))
+    
+    if len(argusNL_dataset) == 1 : argusNL_dataset = argusNL_dataset[0]
+    else : argusNL_dataset = torch.utils.data.ConcatDataset(argusNL_dataset)
+
+    return argusNL_dataset
+
+def build_train_dataset(lists_path, resize_height, resize_width, crop_height, crop_width, mean, std, scale_limit, shift_limit, rotate_limit):
+    argusNL_dataset = build_concat_dataset(lists_path)
 
     transforms_list = [
         A.HorizontalFlip(p=0.5),
@@ -106,8 +116,8 @@ def build_train_dataset(list_path, resize_height, resize_width, crop_height, cro
     argusNL_seg_dataset = TransformDataset(argusNL_dataset, transforms, drop_extra_params=True)
     return argusNL_seg_dataset
 
-def build_val_dataset(list_path, resize_height, resize_width, crop_height, crop_width, mean, std):
-    argusNL_dataset = ArgusNLDataset(list_path)
+def build_val_dataset(lists_path, resize_height, resize_width, crop_height, crop_width, mean, std):
+    argusNL_dataset = build_concat_dataset(lists_path)
 
     transforms_list = [
         A.Resize(resize_height, resize_width, interpolation=cv2.INTER_AREA, always_apply=True),
@@ -153,16 +163,7 @@ def get_mean_and_std(dataset, value_scale=255):
     std = [item * value_scale for item in std]
     return mean, std
 
-
-def main(experiment_name, project_name, entity, list_path_train, list_path_val, outputs_root, models_path, resize_height, resize_width, crop_h, crop_w, scale_limit, shift_limit, rotate_limit, batch_size, learning_rate, num_epochs, layers, num_classes_pretrain, zoom_factor, backbone_output_stride, backbone_net, pretrained_back_path, pretrained_path, funnel_map, device=None, model_name=None, VERBOSE_BATCH=True, VERBOSE_END=True):
-    device = device or torch.device('cpu')
-
-    ####################################### PREPROCESSING  #######################################
-    mean, std = get_mean_and_std(ArgusNLDataset(list_path_train), value_scale=255) # TODO: ¿concatenated train and val?
-
-    argusNL_seg_train_dataset = build_train_dataset(list_path_train, resize_height, resize_width, crop_h, crop_w, mean, std, scale_limit, shift_limit, rotate_limit)
-    argusNL_seg_val_dataset = build_val_dataset(list_path_val, resize_height, resize_width, crop_h, crop_w, mean, std)
-
+def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, argusNL_seg_val_dataset, outputs_root, models_path, resize_height, resize_width, crop_h, crop_w, mean, std, scale_limit, shift_limit, rotate_limit, batch_size, learning_rate, num_epochs, layers, num_classes_pretrain, zoom_factor, backbone_output_stride, backbone_net, pretrained_back_path, pretrained_path, funnel_map, fold, num_folds, device=None, model_name=None, VERBOSE_BATCH=True, VERBOSE_END=True):
     def collate_fn(batch):
         inputs = []
         targets = []
@@ -200,8 +201,8 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
     optimizer = optimizer_class(model.parameters(), **optimizer_params)
 
     metric_funct_dict = {'mIoU' : lambda seg_img, ground_truth : torch_mIoU(seg_img.argmax(dim=1), ground_truth)}
-    argusNL_seg_train_local_logger = LocalLogger(metric_funct_dict, len(argusNL_seg_train_dataset), prefix="Train")
-    argusNL_seg_val_local_logger = LocalLogger(metric_funct_dict.copy(), len(argusNL_seg_val_dataset), prefix="Valid")
+    argusNL_seg_train_local_logger = LocalLogger(metric_funct_dict, len(argusNL_seg_train_dataset), prefix=f"Train (fold {fold + 1}/{num_folds})")
+    argusNL_seg_val_local_logger = LocalLogger(metric_funct_dict.copy(), len(argusNL_seg_val_dataset), prefix=f"Valid (fold {fold + 1}/{num_folds})")
 
     wandb_logger = WandbLogger(project_name, experiment_name, entity)
     wandb_logger.watch_model(model, log="all", log_freq=50)
@@ -242,7 +243,7 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
 
         #last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, device=device, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
         last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
-        wandb_logger.log(last_train_epoch_log, prefix="train_", step=epoch)
+        wandb_logger.log(last_train_epoch_log, prefix="train_{fold + 1}-{num_folds}")
 
         model.train()
         model.eval()
@@ -250,13 +251,13 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
         with torch.no_grad():
             #last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, device=device, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
             last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
-            wandb_logger.log(last_val_epoch_log, prefix="valid_", step=epoch)
+            wandb_logger.log(last_val_epoch_log, prefix="valid_{fold + 1}-{num_folds}")
         
         # Save model
         torch.save(model.state_dict(), models_path)
         wandb_logger.upload_model(models_path, aliases=[f'epoch_{epoch}'], wait=(epoch==(num_epochs-1)))
         
-        wandb_logger.log({'epoch' : epoch}, step=epoch, commit=True)
+        wandb_logger.log({'epoch' : epoch})
 
     ##############################################################################################
 
@@ -274,10 +275,43 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
     ##############################################################################################
 
 
+def main(experiment_name, project_name, entity, lists_path, num_val_folds, outputs_root, models_path, resize_height, resize_width, crop_h, crop_w, scale_limit, shift_limit, rotate_limit, batch_size, learning_rate, num_epochs, layers, num_classes_pretrain, zoom_factor, backbone_output_stride, backbone_net, pretrained_back_path, pretrained_path, funnel_map, device=None, model_name=None, VERBOSE_BATCH=True, VERBOSE_END=True):
+    device = device or torch.device('cpu')
+
+    ####################################### PREPROCESSING  #######################################
+    mean, std = get_mean_and_std(build_concat_dataset(lists_path), value_scale=255)
+
+    folds = set(combinations(range(len(lists_path)), num_val_folds))
+    num_folds = len(folds)
+    for fold, indxs in enumerate(folds):
+
+        experiment_fold_name = f'{experiment_name}_{fold + 1}-{num_folds}'
+
+        train_lists = [lists_path[indx] for indx in indxs]
+        argusNL_seg_train_dataset = build_train_dataset(train_lists, resize_height, resize_width, crop_h, crop_w, mean, std, scale_limit, shift_limit, rotate_limit)
+
+        val_lists = [lists_path[indx] for indx in range(len(lists_path)) if indx not in indxs]
+        argusNL_seg_val_dataset = build_val_dataset(val_lists, resize_height, resize_width, crop_h, crop_w, mean, std)
+
+        one_fold(
+            experiment_fold_name, project_name, entity, 
+            argusNL_seg_train_dataset, argusNL_seg_val_dataset,
+            outputs_root, models_path, 
+            resize_height, resize_width, crop_h, crop_w, mean, std,
+            scale_limit, shift_limit, rotate_limit, 
+            batch_size, learning_rate, num_epochs, 
+            layers, num_classes_pretrain, zoom_factor, 
+            backbone_output_stride, backbone_net, 
+            pretrained_back_path, pretrained_path, 
+            funnel_map, fold, num_folds, device=device, model_name=model_name, 
+            VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END
+            )
+
+
 if __name__ == "__main__":
     
     # TODO: docopts
-    (list_path_train, list_path_val, outputs_root, models_path, 
+    (lists_path, num_val_folds, outputs_root, models_path, 
     model_name, batch_size, learning_rate, num_epochs,
     resize_height, resize_width, crop_height, crop_width, 
     scale_limit, shift_limit, rotate_limit, 
@@ -304,8 +338,8 @@ if __name__ == "__main__":
     params.pretrained_path = pretrained_path
     
     params.funnel_map = FUNNEL_MAP if params.funnel_map == True else params.funnel_map
-    params.list_path_train = list_path_train or params.list_path_train
-    params.list_path_val = list_path_val or params.list_path_val
+    params.lists_path = lists_path or params.lists_path
+    params.num_val_folds = num_val_folds or params.num_val_folds
     params.outputs_root = outputs_root or params.outputs_root
     params.models_path = models_path or params.models_path
     params.resize_height = resize_height or params.resize_height
@@ -332,8 +366,8 @@ if __name__ == "__main__":
         params.experiment_name,
         params.project_name,
         params.entity,
-        params.list_path_train,
-        params.list_path_val,
+        params.lists_path,
+        params.num_val_folds,
         params.outputs_root,
         params.models_path,
         params.resize_height,

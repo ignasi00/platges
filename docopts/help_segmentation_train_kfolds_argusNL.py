@@ -7,6 +7,7 @@ import json
 #LIST_PATH_VAL = None
 #OUTPUTS_ROOT = None
 #MODEL_OUTPUTS_ROOT = None
+NUM_VAL_FOLDS = 1
 
 MODEL_NAME = "pyConvSegNet"
 
@@ -36,13 +37,13 @@ BACKBONE_NET = "pyconvresnet"
 
 DOCTEXT = f"""
 Usage:
-  segmentation_train_argusNL.py [--list_path_train=<lpt>] [--list_path_val=<lpv>] [--outputs_root=<or>] [--models_path=<mp>] [--model_name=<mn>] [--batch_size=<bs>] [--learning_rate=<lr>] [--num_epochs=<ne>] [--resize_height=<rh>] [--resize_width=<rw>] [--crop_height=<ch>] [--crop_width=<cw>] [--scale_limit=<sl>] [--shift_limit=<shl>] [--rotate_limit=<rl>] [--zoom_factor=<zf>] [--funnel_map=<fm>] [--layers=<l>] [--num_classes_pretrain=<ncp>] [--backbone_output_stride=<bos>] [--backbone_net=<bn>] [--pretrained_backbone_path=<pbp>] [--pretrained_path=<pp>]
-  segmentation_train_argusNL.py -h | --help
+  segmentation_train_kfolds_argusNL.py [--lists_path=<lp>...] [--num_val_folds=<nvf>] [--outputs_root=<or>] [--models_path=<mp>] [--model_name=<mn>] [--batch_size=<bs>] [--learning_rate=<lr>] [--num_epochs=<ne>] [--resize_height=<rh>] [--resize_width=<rw>] [--crop_height=<ch>] [--crop_width=<cw>] [--scale_limit=<sl>] [--shift_limit=<shl>] [--rotate_limit=<rl>] [--zoom_factor=<zf>] [--funnel_map=<fm>] [--layers=<l>] [--num_classes_pretrain=<ncp>] [--backbone_output_stride=<bos>] [--backbone_net=<bn>] [--pretrained_backbone_path=<pbp>] [--pretrained_path=<pp>]
+  segmentation_train_kfolds_argusNL.py -h | --help
 
 Options:
   -h --help                             Show this screen.
-  --list_path_train=<lpt>               Str. List used to make the dataset.
-  --list_path_val=<lpv>                 Str. List used to make the dataset.
+  --lists_path=<lp>                     Str vector. Lists used to make the datasets.
+  --num_val_folds=<nvf>                 Int. Number of lists used for the validation datasets [default: {NUM_VAL_FOLDS}].
   --outputs_root=<or>                   Str. Root folder where the outputs are stored.
   --models_path=<mp>                    Str. Path and filename for model storage.
   --model_name=<mn>                     Str. Not implemented yet [default: {MODEL_NAME}].
@@ -73,8 +74,8 @@ def parse_args(argv):
     
     opts = docopt(DOCTEXT, argv=argv[1:], help=True, version=None, options_first=False)
 
-    list_path_train = opts["--list_path_train"]
-    list_path_val = opts["--list_path_val"]
+    lists_path = opts["--lists_path"]
+    num_val_folds = int(opts["--num_val_folds"])
     outputs_root = opts["--outputs_root"]
     models_path = opts["--models_path"]
     model_name = opts["--model_name"]
@@ -108,5 +109,5 @@ def parse_args(argv):
             funnel_map = None
 
     
-    args = (list_path_train, list_path_val, outputs_root, models_path, model_name, batch_size, learning_rate, num_epochs, resize_height, resize_width, crop_height, crop_width, scale_limit, shift_limit, rotate_limit, zoom_factor, funnel_map, layers, num_classes_pretrain, backbone_output_stride, backbone_net, pretrained_backbone_path, pretrained_path)
+    args = (lists_path, num_val_folds, outputs_root, models_path, model_name, batch_size, learning_rate, num_epochs, resize_height, resize_width, crop_height, crop_width, scale_limit, shift_limit, rotate_limit, zoom_factor, funnel_map, layers, num_classes_pretrain, backbone_output_stride, backbone_net, pretrained_backbone_path, pretrained_path)
     return args
