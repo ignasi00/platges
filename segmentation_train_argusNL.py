@@ -169,16 +169,13 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
         targets = []
 
         for input_, target in batch:
-            inputs.append(torch.FloatTensor(input_).unsqueeze(0))
-            targets.append(torch.IntTensor(target).unsqueeze(0))
+            inputs.append(torch.FloatTensor(input_))
+            targets.append(torch.IntTensor(target))
 
-        inputs = torch.stack(inputs) # TODO: stack vs cat
+        inputs = torch.stack(inputs)
         inputs = inputs.to(device)
         targets = torch.stack(targets)
         targets = targets.to(device)
-
-        print(inputs.shape)
-        print(targets.shape)
 
         return inputs, targets
 
@@ -203,7 +200,7 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
     optimizer_params = dict(lr=learning_rate, betas=(0.9, 0.999), weight_decay=0)
     optimizer = optimizer_class(model.parameters(), **optimizer_params)
 
-    metric_funct_dict = {'mIoU' : torch_mIoU}
+    metric_funct_dict = {'mIoU' : lambda seg_img, ground_truth : torch_mIoU(seg_img.argmax(dim=1), ground_truth)}
     argusNL_seg_train_local_logger = LocalLogger(metric_funct_dict, len(argusNL_seg_train_dataset))
     argusNL_seg_val_local_logger = LocalLogger(metric_funct_dict.copy(), len(argusNL_seg_val_dataset))
 
