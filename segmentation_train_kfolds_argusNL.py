@@ -226,7 +226,8 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
         'num_classes_pretrain' : num_classes_pretrain,
         'backbone_output_stride' : backbone_output_stride,
         'backbone_net' : backbone_net,
-        'model_name' : model_name
+        'model_name' : model_name,
+        'num_folds' : num_folds
         }
     hyperparameters['loss_type'] = type(criterion)
     hyperparameters['optim_type'] = type(optimizer)
@@ -243,7 +244,8 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
 
         #last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, device=device, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
         last_train_epoch_log = accumulated_grad_train(model, criterion, optimizer, argusNL_seg_train_dataloader, argusNL_seg_train_local_logger, batch_size, drop_last=True, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
-        wandb_logger.log(last_train_epoch_log, prefix="train_{fold + 1}-{num_folds}")
+        wandb_logger.log(last_train_epoch_log, prefix=f"train_{fold + 1}-{num_folds}")
+        argusNL_seg_train_local_logger.print_last_epoch_summary(mode='train')
 
         model.train()
         model.eval()
@@ -251,7 +253,8 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
         with torch.no_grad():
             #last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, device=device, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
             last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
-            wandb_logger.log(last_val_epoch_log, prefix="valid_{fold + 1}-{num_folds}")
+            wandb_logger.log(last_val_epoch_log, prefix=f"valid_{fold + 1}-{num_folds}")
+            argusNL_seg_val_local_logger.print_last_epoch_summary(mode='valid')
         
         # Save model
         torch.save(model.state_dict(), models_path)
