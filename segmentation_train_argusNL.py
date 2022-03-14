@@ -28,7 +28,7 @@ from extern.pyconvsegnet.model.pyconvsegnet import PyConvSegNet
 
 
 DATASET = 'argusNL'
-MAX_BATCH_SIZE = 4
+MAX_BATCH_SIZE = 2
 
 SEGMENTATION_PREFIX = 'seg_'
 ERROR_PREFIX = 'err_'
