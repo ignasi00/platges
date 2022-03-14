@@ -260,9 +260,9 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
         
         # Save model
         torch.save(model.state_dict(), models_path)
-        if save_epoch : wandb_logger.upload_model(models_path, aliases=[f'epoch_{epoch}'], wait=(epoch==(num_epochs-1)))
+        wandb_logger.upload_model(models_path, aliases=[f'epoch_{epoch}'], wait=(epoch==(num_epochs-1)))
         
-        wandb_logger.log({'epoch' : epoch})
+        if save_epoch : wandb_logger.log({'epoch' : epoch})
 
     ##############################################################################################
 
