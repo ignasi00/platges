@@ -38,7 +38,7 @@ BACKBONE_NET = "pyconvresnet"
 
 DOCTEXT = f"""
 Usage:
-  segmentation_train_kfolds_argusNL.py [--lists_path=<lp>...] [--num_val_folds=<nvf>] [--outputs_root=<or>] [--models_path=<mp>] [--model_name=<mn>] [--batch_size=<bs>] [--learning_rate=<lr>] [--num_epochs=<ne>] [--resize_height=<rh>] [--resize_width=<rw>] [--crop_height=<ch>] [--crop_width=<cw>] [--scale_limit=<sl>] [--shift_limit=<shl>] [--rotate_limit=<rl>] [--zoom_factor=<zf>] [--funnel_map=<fm>] [--layers=<l>] [--num_classes_pretrain=<ncp>] [--backbone_output_stride=<bos>] [--backbone_net=<bn>] [--pretrained_backbone_path=<pbp>] [--pretrained_path=<pp>]
+  segmentation_train_kfolds_argusNL.py [--lists_path=<lp>...] [--num_val_folds=<nvf>] [--outputs_root=<or>] [--models_path=<mp>] [--model_name=<mn>] [--batch_size=<bs>] [--learning_rate=<lr>] [--num_epochs=<ne>] [--resize_height=<rh>] [--resize_width=<rw>] [--crop_height=<ch>] [--crop_width=<cw>] [--scale_limit=<sl>] [--shift_limit=<shl>] [--rotate_limit=<rl>] [--zoom_factor=<zf>] [--funnel_map=<fm>] [--layers=<l>] [--num_classes_pretrain=<ncp>] [--backbone_output_stride=<bos>] [--backbone_net=<bn>] [--pretrained_backbone_path=<pbp>] [--pretrained_path=<pp>] [--check_crops=<cc>]
   segmentation_train_kfolds_argusNL.py -h | --help
 
 Options:
