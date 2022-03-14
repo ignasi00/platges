@@ -84,6 +84,8 @@ class LocalLogger():
         metrics_str = ''
         for name in self.metric_funct_dict.keys():
             metrics_str = f"{metrics_str}_{mode} {name}={self.log[name][-1]:.1f}%, "
+        
+        loss = self.log[LOSS][-1]
 
         if extra_notes is None:
             print(f'| epoch {epoch:03d} | {metrics_str}_{mode} loss={loss:.2f}')
