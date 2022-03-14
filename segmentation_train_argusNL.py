@@ -201,8 +201,8 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
     optimizer = optimizer_class(model.parameters(), **optimizer_params)
 
     metric_funct_dict = {'mIoU' : lambda seg_img, ground_truth : torch_mIoU(seg_img.argmax(dim=1), ground_truth)}
-    argusNL_seg_train_local_logger = LocalLogger(metric_funct_dict, len(argusNL_seg_train_dataset), prefix="train_")
-    argusNL_seg_val_local_logger = LocalLogger(metric_funct_dict.copy(), len(argusNL_seg_val_dataset), prefix="valid_")
+    argusNL_seg_train_local_logger = LocalLogger(metric_funct_dict, len(argusNL_seg_train_dataset), prefix="Train")
+    argusNL_seg_val_local_logger = LocalLogger(metric_funct_dict.copy(), len(argusNL_seg_val_dataset), prefix="Valid")
 
     wandb_logger = WandbLogger(project_name, experiment_name, entity)
     wandb_logger.watch_model(model, log="all", log_freq=50)
@@ -258,7 +258,7 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
         torch.save(model.state_dict(), models_path)
         wandb_logger.upload_model(models_path, aliases=[f'epoch_{epoch}'], wait=(epoch==(num_epochs-1)))
         
-        wandb_logger.log_epoch({'epoch' : epoch}, step=epoch, commit=True)
+        wandb_logger.log({'epoch' : epoch}, step=epoch, commit=True)
 
     ##############################################################################################
 
