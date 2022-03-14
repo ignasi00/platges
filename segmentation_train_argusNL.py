@@ -169,10 +169,10 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
         targets = []
 
         for input_, target in batch:
-            inputs.append(torch.FloatTensor(input_))
-            targets.append(torch.IntTensor(target))
+            inputs.append(torch.FloatTensor(input_).unsqueeze(0))
+            targets.append(torch.IntTensor(target).unsqueeze(0))
 
-        inputs = torch.stack(inputs)
+        inputs = torch.stack(inputs) # TODO: stack vs cat
         inputs = inputs.to(device)
         targets = torch.stack(targets)
         targets = targets.to(device)
