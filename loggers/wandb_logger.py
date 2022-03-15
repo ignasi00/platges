@@ -65,3 +65,6 @@ class WandbLogger():
 
         return f"{output_dir}/{model_filename}"
 
+    def cleanup_cache(self, limit=5):
+        cache = wandb.sdk.interface.artifacts.get_artifacts_cache()
+        cache.cleanup(wandb.util.from_human_size(f"{limit}GB"))

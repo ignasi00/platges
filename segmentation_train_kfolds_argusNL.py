@@ -258,6 +258,9 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
             wandb_logger.log(last_val_epoch_log, prefix=f"valid_{fold + 1}-{num_folds}_", commit=False)
             argusNL_seg_val_local_logger.print_last_epoch_summary(mode='valid')
         
+        # clean up cache
+        wandb_logger.cleanup_cache(5)
+        
         # Save model
         torch.save(model.state_dict(), models_path)
         wandb_logger.upload_model(models_path, aliases=[f'epoch_{epoch}'], wait=(epoch==(num_epochs-1)))

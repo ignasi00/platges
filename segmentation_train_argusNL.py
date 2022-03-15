@@ -255,6 +255,9 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
             last_val_epoch_log = vanilla_validate(model, criterion, argusNL_seg_val_dataloader, argusNL_seg_val_local_logger, VERBOSE_BATCH=VERBOSE_BATCH, VERBOSE_END=VERBOSE_END)
             wandb_logger.log(last_val_epoch_log, prefix="valid_", step=epoch)
         
+        # clean up cache
+        wandb_logger.cleanup_cache(5)
+
         # Save model
         torch.save(model.state_dict(), models_path)
         wandb_logger.upload_model(models_path, aliases=[f'epoch_{epoch}'], wait=(epoch==(num_epochs-1)))
