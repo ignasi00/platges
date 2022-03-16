@@ -54,7 +54,7 @@ class WandbLogger():
         # log on a given run single final values like best scores (overwritting), configs, best epoch, etc
         for key, value in dict_data.items():
             wandb.run.summary[key] = value
-        wandb.run.summary.update()
+        wandb.run.summary.update(wandb.run.summary)
 
     def download_model(self, model_filename, output_dir, alias=None):
         alias = alias or "latest"
