@@ -335,7 +335,7 @@ def main(experiment_name, project_name, entity, lists_path, num_val_folds, outpu
     wandb_logger = WandbLogger(project_name, experiment_name, entity)
     #wandb_logger.summarize('train_mIoU' :  v_best_train[best_fold])
     #wandb_logger.summarize('valid_mIoU' : v_best_valid[best_fold])
-    wandb_logger.summarize({
+    wandb_logger.log({
         'train_mIoU' : sum([elem['train_mIoU'] for elem in v_best_train]) / len(v_best_train),
         'valid_mIoU' : sum([elem['valid_mIoU'] for elem in v_best_valid]) / len(v_best_valid)
         })
