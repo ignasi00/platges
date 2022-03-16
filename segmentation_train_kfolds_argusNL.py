@@ -164,7 +164,7 @@ def get_mean_and_std(dataset, value_scale=255):
     std = [item * value_scale for item in std]
     return mean, std
 
-def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, argusNL_seg_val_dataset, outputs_root, models_path, resize_height, resize_width, crop_h, crop_w, mean, std, scale_limit, shift_limit, rotate_limit, batch_size, learning_rate, num_epochs, layers, num_classes_pretrain, zoom_factor, backbone_output_stride, backbone_net, pretrained_back_path, pretrained_path, funnel_map, fold, num_folds, device=None, model_name=None, save_epoch=False, VERBOSE_BATCH=True, VERBOSE_END=True):
+def one_fold(wandb_logger, experiment_name, argusNL_seg_train_dataset, argusNL_seg_val_dataset, outputs_root, models_path, resize_height, resize_width, crop_h, crop_w, mean, std, scale_limit, shift_limit, rotate_limit, batch_size, learning_rate, num_epochs, layers, num_classes_pretrain, zoom_factor, backbone_output_stride, backbone_net, pretrained_back_path, pretrained_path, funnel_map, fold, num_folds, device=None, model_name=None, save_epoch=False, VERBOSE_BATCH=True, VERBOSE_END=True):
     def collate_fn(batch):
         inputs = []
         targets = []
@@ -205,7 +205,7 @@ def one_fold(experiment_name, project_name, entity, argusNL_seg_train_dataset, a
     argusNL_seg_train_local_logger = LocalLogger(metric_funct_dict, len(argusNL_seg_train_dataset), prefix=f"Train (fold {fold + 1}/{num_folds})")
     argusNL_seg_val_local_logger = LocalLogger(metric_funct_dict.copy(), len(argusNL_seg_val_dataset), prefix=f"Valid (fold {fold + 1}/{num_folds})")
 
-    wandb_logger = WandbLogger(project_name, experiment_name, entity)
+    wandb_logger.change_experiment_name(experiment_name)
     wandb_logger.watch_model(model, log="all", log_freq=50)
 
     hyperparameters = {
@@ -293,6 +293,8 @@ def main(experiment_name, project_name, entity, lists_path, num_val_folds, outpu
     device = device or torch.device('cpu')
 
     ####################################### PREPROCESSING  #######################################
+    wandb_logger = WandbLogger(project_name, experiment_name, entity)
+    
     mean, std = get_mean_and_std(build_concat_dataset(lists_path), value_scale=255)
 
     v_best_train = []
@@ -311,7 +313,7 @@ def main(experiment_name, project_name, entity, lists_path, num_val_folds, outpu
         argusNL_seg_val_dataset = build_val_dataset(val_lists, resize_height, resize_width, crop_h, crop_w, mean, std)
 
         best_train, best_valid = one_fold(
-            experiment_fold_name, project_name, entity, 
+            wandb_logger, experiment_fold_name, 
             argusNL_seg_train_dataset, argusNL_seg_val_dataset,
             outputs_root, models_path, 
             resize_height, resize_width, crop_h, crop_w, mean, std,
@@ -332,7 +334,7 @@ def main(experiment_name, project_name, entity, lists_path, num_val_folds, outpu
     #alpha = 1.5 #best_fold = [t['train_mIoU'] + alpha * v['valid_mIoU'] for t, v in zip(v_best_train, v_best_valid)]
     #best_fold = sorted([(i, score) for i, score in enumerate(best_fold)], key=lambda x : x[-1], reverse=True)[0][0]
 
-    wandb_logger = WandbLogger(project_name, experiment_name, entity)
+    wandb_logger.change_experiment_name(experiment_name)
     #wandb_logger.summarize('train_mIoU' :  v_best_train[best_fold])
     #wandb_logger.summarize('valid_mIoU' : v_best_valid[best_fold])
     wandb_logger.summarize({

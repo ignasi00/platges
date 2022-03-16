@@ -16,6 +16,10 @@ class WandbLogger():
         self.project_name = project_name
         self.experiment_name = experiment_name
 
+    def change_experiment_name(self, experiment_name):
+        # By instance, for K-folds
+        self.experiment_name = experiment_name
+
     def watch_model(self, model, log="all", log_freq=1000):
         # watch a given run
         wandb.watch(model, log=log, log_freq=log_freq)
