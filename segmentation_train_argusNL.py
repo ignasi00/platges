@@ -205,7 +205,7 @@ def main(experiment_name, project_name, entity, list_path_train, list_path_val, 
     argusNL_seg_val_local_logger = LocalLogger(metric_funct_dict.copy(), len(argusNL_seg_val_dataset), prefix="Valid")
 
     wandb_logger = WandbLogger(project_name, experiment_name, entity)
-    wandb_logger.watch_model(model, log="all", log_freq=50)
+    # wandb_logger.watch_model(model, log="all", log_freq=50)
 
     hyperparameters = {
         "resize_height" : resize_height,

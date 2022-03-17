@@ -206,7 +206,7 @@ def one_fold(wandb_logger, experiment_name, argusNL_seg_train_dataset, argusNL_s
     argusNL_seg_val_local_logger = LocalLogger(metric_funct_dict.copy(), len(argusNL_seg_val_dataset), prefix=f"Valid (fold {fold + 1}/{num_folds})")
 
     wandb_logger.change_experiment_name(experiment_name)
-    wandb_logger.watch_model(model, log="all", log_freq=50)
+    # wandb_logger.watch_model(model, log="all", log_freq=50) # Maybe there should be a unwatch as there are K models
 
     hyperparameters = {
         "resize_height" : resize_height,
