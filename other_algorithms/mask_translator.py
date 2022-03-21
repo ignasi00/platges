@@ -27,15 +27,16 @@ class MaskTranslator():
 
         return max_x, min_x, max_y, min_y
 
-    def __init__(self, point_finder_descriptor=None, homography_matrix_estimator=None, matrix_applier=None, training=True):
+    def __init__(self, point_finder_descriptor=None, homography_matrix_estimator=None, matrix_applier=None, training=True, masked_input=False):
 
         self.training = training
+        self.masked_input = masked_input
 
         self.descriptor = point_finder_descriptor
         if self.descriptor is None:
             # points of interest with histogram of gradient not direction dependent descriptors
             descriptor = cv2.SIFT_create()
-            self.descriptor = lambda img, other : descriptor.detectAndCompute(img, other)
+            self.descriptor = lambda img, other : descriptor.detectAndCompute(img, mask=other)
     
         self.matrix_finder = homography_matrix_estimator
         if self.matrix_finder is None:
@@ -53,8 +54,12 @@ class MaskTranslator():
         self.training = False
         
     def forward(self, img1, img2, mask1, mask2):
-        kp1, des1 = self.descriptor(img1, None)
-        kp2, des2 = self.descriptor(img2, None)
+        if self.masked_input:
+            kp1, des1 = self.descriptor(img1, (mask1 != 0).astype(np.uint8))
+            kp2, des2 = self.descriptor(img2, (mask2 != 0).astype(np.uint8))
+        else:
+            kp1, des1 = self.descriptor(img1, None)
+            kp2, des2 = self.descriptor(img2, None)
 
         H, _, mask = self.matrix_finder(kp1, des1, kp2, des2)
 

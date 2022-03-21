@@ -40,6 +40,10 @@ Options:
   --latitude=<la>                       Float. Size of the latitude bin of a histogram for the BCN_GPS datasets (which clusters images) [default: {LATITUDE_BIN_SIZE}].
   --min_imgs=<mi>                       Int. Minimum number of images per cluster of the BCN_GPS, if not reached, images will be added to its nearest bin [default: {MIN_PER_BIN}].
   --verbose=<v>                         Bool. Some list creation script may show information as it runs, this parameter manage it [default: {VERBOSE}].
+
+FREQUENT ISSUES:
+  BCNseg images are .JPG and not .jpg, it requieres --img_ext=.JPG
+
 """
 
 
