@@ -184,7 +184,7 @@ def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, met
         train_dataset_iterator, val_dataset_iterator = build_kfolds_datasets_iterators(experiment_metadata.lists_paths, folds, base_dataset_type, params)
         
         model_generator = copy_generator_from_params(model_type, params, num_folds)
-        model_iterator = model_generator()
+        model_iterator = iter(model_generator)
         
         kfolds_logger = KfoldsLocalLogger(metrics_funct_dict.copy(), num_folds, key=None, maximize=True, train_prefix="Train", val_prefix="Valid")
         

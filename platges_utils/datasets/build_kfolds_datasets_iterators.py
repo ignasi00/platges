@@ -20,7 +20,7 @@ def build_kfolds_datasets_iterators(lists_paths, folds, base_dataset_type, param
 
     train_dataset_generator, val_dataset_generator = build_kfolds_datasets_generators(lists_paths, folds, build_train_dataset_from_lists_paths, build_val_dataset_from_lists_paths)
     
-    train_dataset_iterator = train_dataset_generator()
-    val_dataset_iterator = val_dataset_generator()
+    train_dataset_iterator = iter(train_dataset_generator)
+    val_dataset_iterator = iter(val_dataset_generator)
 
     return train_dataset_iterator, val_dataset_iterator
