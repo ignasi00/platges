@@ -150,7 +150,7 @@ def get_optim_type(optim_name, params):
     else:
         raise Exception(f"Undefined optim_name: {optim_name}\nMaybe it is defined but not contemplated on the script (experiment).")
 
-def copy_generator_from_params(constructor, params, num_folds):
+def copy_iterator_from_params(constructor, params, num_folds):
     for _ in range(num_folds):
         yield constructor(params)
 
@@ -183,8 +183,7 @@ def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, met
 
         train_dataset_iterator, val_dataset_iterator = build_kfolds_datasets_iterators(experiment_metadata.lists_paths, folds, base_dataset_type, params)
         
-        model_generator = copy_generator_from_params(model_type, params, num_folds)
-        model_iterator = iter(model_generator)
+        model_iterator = copy_iterator_from_params(model_type, params, num_folds)
         
         kfolds_logger = KfoldsLocalLogger(metrics_funct_dict.copy(), num_folds, key=None, maximize=True, train_prefix="Train", val_prefix="Valid")
         
