@@ -177,7 +177,7 @@ def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, met
 
     # Given that the inputs for the kfolds version are designed to be different, a big if clause is used although it increase the complexity (equivalent to 2 scripts).
     if experiment_metadata.training_type == "kfolds":
-        folds = set(combinations(range(len(lists_paths)), num_val_folds))
+        folds = set(combinations(range(len(experiment_metadata.lists_paths)), num_val_folds))
         num_folds = len(folds)
         experiment_metadata_add_elem(experiment_metadata, 'num_folds', num_folds)
 
