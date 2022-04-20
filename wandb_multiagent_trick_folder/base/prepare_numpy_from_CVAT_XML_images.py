@@ -1,1 +1,0 @@
-../../prepare_numpy_from_CVAT_XML_images.py

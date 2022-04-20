@@ -3,7 +3,7 @@ import pathlib
 import sys
 
 from docopts.help_prepare_data import parse_args
-from prepare_numpy_from_CVAT_XML_images import main as prepare_numpy_from_CVAT_XML_images
+from preparation.data.prepare_numpy_from_CVAT_XML_images import main as prepare_numpy_from_CVAT_XML_images
 
 
 if __name__ == "__main__":

@@ -44,7 +44,11 @@ cython_debug/
 nohup.out
 nohup*.out
 model_parameters/*.pth
+model_parameters/*.pt
+model_parameters/*/
+model_parameters/*/
 data_lists/*
 outputs/*/
+!outputs/README_images/
 wandb_multiagent_trick_folder/
 

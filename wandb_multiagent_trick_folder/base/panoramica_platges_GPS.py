@@ -1,1 +1,0 @@
-../../panoramica_platges_GPS.py

@@ -1,1 +1,0 @@
-../../create_BCN_segmentation_list.py

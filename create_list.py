@@ -3,11 +3,11 @@ import json
 import pathlib
 import sys
 
-from create_BCN_GPS_overlap_list import EXIF_homography_list
-from create_argusNL_list import ArgusNL_list
-from create_BCN_segmentation_list import platgesbcn_list
 from docopts.help_create_list import parse_args
-from list_utils.split_list import split_list, split_pandas
+from preparation.lists.create_BCN_GPS_overlap_list import EXIF_homography_list
+from preparation.lists.create_argusNL_list import ArgusNL_list
+from preparation.lists.create_BCN_segmentation_list import platgesbcn_list
+from preparation.lists.utils.split_list import split_list, split_pandas
 
 
 IMAGES = 'images'
