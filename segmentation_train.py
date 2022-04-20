@@ -157,16 +157,16 @@ def copy_generator_from_params(constructor, params, num_folds):
 def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, metrics_funct_dict=None):
     device = device or torch.device('cpu')
 
-    mean, std = get_mean_and_std(dataset=build_concat_dataset(experiment_metadata.lists_paths, base_dataset_type), params=params, value_scale=255)
-    params_add_elem(params, 'mean', mean)
-    params_add_elem(params, 'std', std)
-
-    postprocess_output_and_target_funct = get_postprocess_output_and_target_funct(experiment_metadata.dataset)
-
     base_dataset_type = get_base_dataset_type(experiment_metadata.dataset)
     model_type = get_model_type(experiment_metadata.model_name)
     loss_type = get_loss_type(experiment_metadata.loss_name, params)
     optim_type = get_optim_type(experiment_metadata.optim_name, params)
+
+    postprocess_output_and_target_funct = get_postprocess_output_and_target_funct(experiment_metadata.dataset)
+
+    mean, std = get_mean_and_std(dataset=build_concat_dataset(experiment_metadata.lists_paths, base_dataset_type), params=params, value_scale=255)
+    params_add_elem(params, 'mean', mean)
+    params_add_elem(params, 'std', std)
 
     metrics_funct_dict = metrics_funct_dict or {'mIoU' : lambda seg_img, ground_truth : torch_mIoU(seg_img.argmax(dim=1), ground_truth)}
 
