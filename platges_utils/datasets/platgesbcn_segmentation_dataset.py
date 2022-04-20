@@ -61,4 +61,4 @@ def resolve_ambiguity_platgesBCN(model_output, target, resolve=True):
     target[new_sand_mask] = SAND_ID
     target[new_water_mask] = WATER_ID
 
-    return output, target
+    return model_output, target

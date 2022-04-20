@@ -106,7 +106,9 @@ def save_result(input_, output, target, img_path, experiment_metadata, params, c
 
 def get_postprocess_output_and_target_funct(dataset):
     if dataset == 'platgesBCN':
-        return lambda output, target : resolve_ambiguity_platgesBCN(output, target, resolve=False)
+        def postprocess_platges(output, target):
+            output, target = resolve_ambiguity_platgesBCN(output, target, resolve=False)
+            return output.max(1)[1], target
     #elif dataset == '':
     else:
         return None
