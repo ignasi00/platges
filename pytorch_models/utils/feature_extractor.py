@@ -22,4 +22,4 @@ class FeatureExtractor(nn.Module):
 
     def forward(self, x):
         _ = self.model(x)
-        return self._features
+        return self._features[self.layers[0]], *[self._features[layer_id] for layer_id in self.layers]

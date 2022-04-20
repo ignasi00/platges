@@ -23,12 +23,13 @@ def apply_net_eval_cpu(model, input_, classes, crop_h, crop_w, mean, std, base_s
     prediction = np.zeros((h, w, classes), dtype=float)
     for scale in scales:
         long_size = round(scale * base_size)
-        new_h = long_size
-        new_w = long_size
         if h > w:
-            new_w = round(long_size/float(h)*w)
+            new_h = long_size
+            new_w = round(long_size / float(h) * w)
         else:
-            new_h = round(long_size/float(w)*h)
+            new_h = round(long_size / float(w) * h)
+            new_w = long_size
+
         image_scale = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
         prediction += scale_process(model, image_scale, classes, crop_h, crop_w, h, w, mean, std)
     

@@ -27,10 +27,11 @@ class MaskTranslator():
 
         return max_x, min_x, max_y, min_y
 
-    def __init__(self, point_finder_descriptor=None, homography_matrix_estimator=None, matrix_applier=None, training=True, masked_input=False):
+    def __init__(self, point_finder_descriptor=None, homography_matrix_estimator=None, matrix_applier=None, training=True, masked_input=False, MATCHES_VERBOSE=False):
 
         self.training = training
         self.masked_input = masked_input
+        self.MATCHES_VERBOSE = MATCHES_VERBOSE
 
         self.descriptor = point_finder_descriptor
         if self.descriptor is None:
@@ -61,7 +62,15 @@ class MaskTranslator():
             kp1, des1 = self.descriptor(img1, None)
             kp2, des2 = self.descriptor(img2, None)
 
-        H, _, mask = self.matrix_finder(kp1, des1, kp2, des2)
+        H, matches, mask = self.matrix_finder(kp1, des1, kp2, des2)
+        
+        if self.MATCHES_VERBOSE:
+            verbose_img1 = np.zeros_like(img1)
+            verbose_img1 = cv2.drawKeypoints(img1, kp1, verbose_img1, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+            verbose_img2 = np.zeros_like(img2)
+            verbose_img2 = cv2.drawKeypoints(img2, kp2, verbose_img2, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+            verbose_img = cv2.drawMatches(verbose_img1, kp1, verbose_img2, kp2, matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+
 
         if self.training:
             max_x, min_x, max_y, min_y = self._compute_dimensions(img1, img2, H)
@@ -77,10 +86,12 @@ class MaskTranslator():
             img1_h = cv2.warpPerspective(img1, translation_matrix, (width, height), flags=cv2.INTER_LINEAR)
             img2_h = cv2.warpPerspective(img2, h, (width, height), flags=cv2.INTER_LINEAR)
 
+            if self.MATCHES_VERBOSE: return msk1_h, msk2_h, img1_h, img2_h, verbose_img
             return msk1_h, msk2_h, img1_h, img2_h
         else:
             msk1_h = cv2.warpPerspective(mask1, np.linalg.inv(H), (width, height), flags=cv2.INTER_LINEAR) # mask1 into 2
             msk2_h = cv2.warpPerspective(mask2, H, (width, height), flags=cv2.INTER_LINEAR) # mask2 into 1
+            if self.MATCHES_VERBOSE: return msk1_h, msk2_h, verbose_img
             return msk1_h, msk2_h
 
     __call__ = forward

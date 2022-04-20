@@ -1,7 +1,6 @@
 # TODO: Slowly define the style I want to have the models written
 
 import torch
-from torch import Tensor
 import torch.nn as nn
 
 
@@ -199,5 +198,188 @@ def resnet34(num_classes, **kwargs) : return ResNet(BasicBlock, [3, 4, 6, 3], nu
 def resnet50(num_classes, **kwargs) : return ResNet(Bottleneck, [3, 4, 6, 3], num_classes, **kwargs)
 def resnet101(num_classes, **kwargs) : return ResNet(Bottleneck, [3, 4, 23, 3], num_classes, **kwargs)
 def resnet152(num_classes, **kwargs) : return ResNet(Bottleneck, [3, 8, 36, 3], num_classes, **kwargs)
+
+######
+
+class PyConv2d(nn.Module):
+    """ Mostly copied from pyconvsegnet code """
+    def __init__(self, in_channels, out_channels, *, pyconv_kernels, pyconv_padding, pyconv_groups, stride=1, dilation=1, bias=False):
+        super(PyConv2d, self).__init__()
+
+        assert len(out_channels) == len(pyconv_kernels) == len(pyconv_groups) == len(pyconv_padding)
+
+        self.pyconv_levels = [None] * len(pyconv_kernels)
+        for i in range(len(pyconv_kernels)):
+            self.pyconv_levels[i] = nn.Conv2d(in_channels, out_channels[i], kernel_size=pyconv_kernels[i],
+                                              stride=stride, padding=pyconv_padding[i] // 2, groups=pyconv_groups[i],
+                                              dilation=dilation, bias=bias)
+        self.pyconv_levels = nn.ModuleList(self.pyconv_levels)
+
+    def forward(self, x):
+        out = []
+        for level in self.pyconv_levels:
+            out.append(level(x))
+
+        return torch.cat(out, dim=1)
+
+def PyConv4(inplans, planes, *, pyconv_kernels=[3, 5, 7, 9], stride=1, pyconv_groups=[1, 4, 8, 16]):
+    out_channels = [planes // 4] * 4
+    pyconv_padding = [x // 2 for x in pyconv_kernels]
+
+    return PyConv2d(inplans, out_channels=out_channels, pyconv_kernels=pyconv_kernels, pyconv_padding=pyconv_padding, stride=stride, pyconv_groups=pyconv_groups)
+
+def PyConv3(inplans, planes,  pyconv_kernels=[3, 5, 7], stride=1, pyconv_groups=[1, 4, 8]):
+    out_channels = [planes // 4] * 2 + [planes // 2]
+    pyconv_padding = [x // 2 for x in pyconv_kernels]
+
+    return PyConv2d(inplans, out_channels=out_channels, pyconv_kernels=pyconv_kernels, pyconv_padding=pyconv_padding, stride=stride, pyconv_groups=pyconv_groups)
+
+def PyConv2(inplans, planes, pyconv_kernels=[3, 5], stride=1, pyconv_groups=[1, 4]):
+    out_channels = [planes // 2] * 2
+    pyconv_padding = [x // 2 for x in pyconv_kernels]
+
+    return PyConv2d(inplans, out_channels=out_channels, pyconv_kernels=pyconv_kernels, pyconv_padding=pyconv_padding, stride=stride, pyconv_groups=pyconv_groups)
+
+
+class PyConvBlock(nn.Module):
+    """ Mostly copied from pyconvsegnet code """
+    # Module designed to expand the number of desired hidden planes by a factor of 4 at the output. TODO: ¿Why not a parameter?
+    expansion = 4
+    
+    def _get_pyconv(self, inplans, hidden_planes, pyconv_kernels, stride=1, pyconv_groups=[1]):
+        if len(pyconv_kernels) == 1:
+            return nn.Conv2d(inplans, hidden_planes, kernel_size=pyconv_kernels[0], stride=stride, groups=pyconv_groups[0], bias=False)
+        elif len(pyconv_kernels) == 2:
+            return PyConv2(inplans, hidden_planes, pyconv_kernels=pyconv_kernels, stride=stride, pyconv_groups=pyconv_groups)
+        elif len(pyconv_kernels) == 3:
+            return PyConv3(inplans, hidden_planes, pyconv_kernels=pyconv_kernels, stride=stride, pyconv_groups=pyconv_groups)
+        elif len(pyconv_kernels) == 4:
+            return PyConv4(inplans, hidden_planes, pyconv_kernels=pyconv_kernels, stride=stride, pyconv_groups=pyconv_groups)
+
+    def __init__(self, in_planes, hidden_planes, stride=1, downsample=None, pyconv_groups=[1], pyconv_kernels=[1], norm_layer=None):
+        super(PyConvBlock, self).__init__()
+
+        norm_layer = norm_layer or nn.BatchNorm2d
+
+        self.conv1 = conv1x1(in_planes, hidden_planes)
+        self.bn1 = norm_layer(hidden_planes)
+        self.conv2 = self._get_pyconv(hidden_planes, hidden_planes, pyconv_kernels=pyconv_kernels, stride=stride, pyconv_groups=pyconv_groups)
+        self.bn2 = norm_layer(hidden_planes)
+        self.conv3 = conv1x1(hidden_planes, hidden_planes * self.expansion)
+        self.bn3 = norm_layer(hidden_planes * self.expansion)
+        self.relu = nn.ReLU(inplace=True)
+        
+        self.downsample = downsample
+        self.stride = stride
+
+        def forward(self, x):
+            identity = x
+
+            out = self.conv1(x)
+            out = self.bn1(out)
+            out = self.relu(out)
+
+            out = self.conv2(out)
+            out = self.bn2(out)
+            out = self.relu(out)
+
+            out = self.conv3(out)
+            out = self.bn3(out)
+
+            if self.downsample is not None:
+                identity = self.downsample(x)
+
+            out += identity
+            out = self.relu(out)
+
+            return out
+
+class PyConvResNet(nn.Module):
+    """ Mostly copied from pyconvsegnet code """
+    
+    def _make_layer(self, block_class, planes, num_blocks, stride=1, norm_layer=None, pyconv_kernels=None, pyconv_groups=None):
+        
+        norm_layer = norm_layer or nn.BatchNorm2d
+        pyconv_kernels = pyconv_kernels or [3]
+        pyconv_groups = pyconv_groups or [1]
+
+        downsample = None
+        if stride != 1 and self.current_planes != planes * block_class.expansion:
+            downsample = nn.Sequential(
+                nn.MaxPool2d(kernel_size=3, stride=stride, padding=1),
+                conv1x1(self.current_planes, planes * block_class.expansion),
+                norm_layer(planes * block_class.expansion),
+            )
+        elif self.current_planes != planes * block_class.expansion:
+            downsample = nn.Sequential(
+                conv1x1(self.current_planes, planes * block_class.expansion),
+                norm_layer(planes * block_class.expansion),
+            )
+        elif stride != 1:
+            downsample = nn.MaxPool2d(kernel_size=3, stride=stride, padding=1)
+        
+
+        layers = [block_class(self.current_planes, planes, stride=stride, downsample=downsample, norm_layer=norm_layer, pyconv_kernels=pyconv_kernels, pyconv_groups=pyconv_groups)]
+
+        # the other blocks planes input and output are compatibles
+        self.current_planes = planes * block_class.expansion
+
+        layers.extend([ block_class(self.current_planes, planes, norm_layer=norm_layer,
+                                pyconv_kernels=pyconv_kernels, pyconv_groups=pyconv_groups) for _ in range(1, num_blocks) ])
+        
+        return nn.Sequential(*layers)
+
+    def __init__(self, block_class, blocks_per_layer, num_classes=1000, *,
+                    in_planes=3, initial_hidden_planes=64, planes_per_layer=None,
+                    norm_layer=None, dropout_prob0=0.0):
+        super(PyConvResNet, self).__init__()
+
+        assert len(blocks_per_layer) == 4
+
+        norm_layer = norm_layer or nn.BatchNorm2d
+
+        self.current_planes = initial_hidden_planes
+
+        planes_per_layer = planes_per_layer or [64, 128, 256, 512]
+        if len(planes_per_layer) != 4 : raise ValueError(f"planes_per_layer should be None or a 4-element"
+                                                                        f" tuple, got {planes_per_layer}")
+
+        # funnel from input image (in_planes=3) into the PyConvResNet desired input (planes=64); TODO: ¿Why hardwired values or even fixed funneling structure (ResNet uses MaxPool and PyConvResNet do not)?
+        self.conv1 = nn.Conv2d(in_planes, self.current_planes, kernel_size=7, stride=2, padding=3, bias=False)
+        self.bn1 = norm_layer(self.current_planes)
+        self.relu = nn.ReLU(inplace=True)
+
+        # TODO: ¿Why hardwired stride, kernels and groups?
+        self.layer1 = self._make_layer(block_class, planes_per_layer[0], blocks_per_layer[0], stride=2, norm_layer=norm_layer, pyconv_kernels=[3, 5, 7, 9], pyconv_groups=[1, 4, 8, 16])
+        self.layer2 = self._make_layer(block_class, planes_per_layer[1], blocks_per_layer[1], stride=2, norm_layer=norm_layer, pyconv_kernels=[3, 5, 7], pyconv_groups=[1, 4, 8])
+        self.layer3 = self._make_layer(block_class, planes_per_layer[2], blocks_per_layer[2], stride=2, norm_layer=norm_layer, pyconv_kernels=[3, 5], pyconv_groups=[1, 4])
+        self.layer4 = self._make_layer(block_class, planes_per_layer[3], blocks_per_layer[3], stride=2, norm_layer=norm_layer, pyconv_kernels=[3], pyconv_groups=[1])
+        
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.dp = nn.Dropout(dropout_prob0, inplace=True) if dropout_prob0 > 0.0 else None
+        self.fc = nn.Linear(planes_per_layer[3] * block_class.expansion, num_classes)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        if self.dp is not None : x = self.dp(x)
+        x = self.fc(x)
+
+        return x
+
+######
+
+def pyconvresnet50(num_classes, **kwargs) : return PyConvResNet(PyConvBlock, [3, 4, 6, 3], num_classes, **kwargs)
+def pyconvresnet101(num_classes, **kwargs) : return PyConvResNet(PyConvBlock, [3, 4, 23, 3], num_classes, **kwargs)
+def pyconvresnet152(num_classes, **kwargs) : return PyConvResNet(PyConvBlock, [3, 8, 36, 3], num_classes, **kwargs)
 
 ######
