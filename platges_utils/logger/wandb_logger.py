@@ -27,14 +27,14 @@ class WandbFinalSummarize(object):
     
     def __call__(self, wandb_logger):
         if self.training_type == "kfolds":
-            v_best_train, v_best_valid, save_key_train, save_key_val = best_epochs_funct()
+            v_best_train, v_best_valid, save_key_train, save_key_val = self.best_epochs_funct()
             wandb_logger.summarize({
                 f'{save_key_train}' : sum([elem[f'{save_key_train}'] for elem in v_best_train]) / len(v_best_train),
                 f'{save_key_val}' : sum([elem[f'{save_key_val}'] for elem in v_best_valid]) / len(v_best_valid)
             })
 
         elif self.training_type in ["vanilla"]:
-            best_epoch = best_epoch_funct()
+            best_epoch = self.best_epochs_funct()
             wandb_logger.summarize({'best_epoch' : self.best_epoch_offset + best_epoch})
             wandb_logger.summarize(self.local_logger_list[0].get_one_epoch_log(best_epoch, prefix="train_"))
             wandb_logger.summarize(self.local_logger_list[1].get_one_epoch_log(best_epoch, prefix="valid_"))

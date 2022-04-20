@@ -9,12 +9,12 @@ def build_kfolds_datasets_generators(lists_paths, folds, build_train_dataset_fro
     """
 
     def train_dataset_generator(*args, **kargs):
-        train_lists = [lists_paths[indx] for indx in range(len(lists_paths)) if indx not in indxs]
+        train_lists = [lists_paths[indx] for indx in range(len(lists_paths)) if indx not in folds]
         train_dataset = build_train_dataset_from_lists_paths(train_lists, *args, **kargs)
         yield train_dataset
 
     def val_dataset_generator(*args, **kargs):
-        val_lists = [lists_paths[indx] for indx in indxs]
+        val_lists = [lists_paths[indx] for indx in folds]
         val_dataset = build_val_dataset_from_lists_paths(val_lists, *args, **kargs)
         yield val_dataset
 
