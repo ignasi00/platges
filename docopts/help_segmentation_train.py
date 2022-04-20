@@ -135,7 +135,7 @@ def parse_args(argv):
         num_val_folds   = int(opts['--num_val_folds']),
         num_folds       = 1,
         output_root     = opts['--output_root'],
-        models_root     = opts['--model_root'],
+        models_root     = opts['--models_root'],
         experiment_name = opts['--experiment_name'],
         initial_epoch   = int(opts['--initial_epoch']),
         project_name    = opts['--project_name'],
