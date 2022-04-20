@@ -4,21 +4,19 @@ from docopt import docopt
 from types import SimpleNamespace
 
 
-EXPERIMENT_TYPE = "segments_argusNL"
-DATA_ROOT = "./data_lists/"
 experiment_metadata = SimpleNamespace(
-    experiment_type = EXPERIMENT_TYPE,
+    experiment_type = "segments_argusNL",
     dataset         = 'argusNL',
     training_type   = 'kfolds',
     loss_name       = 'dice_loss',
     optim_name      = 'Adam',
     model_name      = 'pyConvSegNet',
-    lists_paths     = [f"{DATA_ROOT}/argusNL_K{i}-5.csv" for i in range(1, 5+1)],
+    lists_paths     = [f"./data_lists/argusNL_K{i}-5.csv" for i in range(1, 5+1)],
     num_val_folds   = 1,
     num_folds       = 1,
-    output_root     = f"./outputs/{EXPERIMENT_TYPE}/",
-    models_root     = f"model_parameters/{EXPERIMENT_TYPE}/",
-    experiment_name = datetime.now().strftime(f"%Y%m%d%H%M%S_{EXPERIMENT_TYPE}"),
+    output_root     = f"./outputs/segmentation/",
+    models_root     = f"model_parameters/segmentation/",
+    experiment_name = datetime.now().strftime(f"%Y%m%d%H%M%S_segmentation"),
     initial_epoch   = 0,
     project_name    = 'platgesBCN',
     entity          = 'ignasi00'
