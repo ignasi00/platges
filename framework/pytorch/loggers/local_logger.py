@@ -78,7 +78,7 @@ class LocalLogger():
         return {f'{prefix}{k}' : v[epoch] for k, v in self.log.items()}
 
     def get_last_epoch_log(self, new_prefix=None):
-        return self.get_one_epoch_log(epoch=-1, new_prefix=prefix)
+        return self.get_one_epoch_log(epoch=-1, new_prefix=new_prefix)
 
     def print_last_epoch_summary(self, mode, extra_notes=None):
         # mode like "train", "valid", "test", etc
