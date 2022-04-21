@@ -191,6 +191,7 @@ def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, met
         wandb_exit_funct = WandbFinalSummarize(training_type=experiment_metadata.training_type, local_logger_list=[kfolds_logger], best_epoch_offset=experiment_metadata.initial_epoch, best_epochs_funct=lambda : kfolds_logger.get_results())
         
         with build_wandb_logger(experiment_metadata.project_name, experiment_metadata.experiment_name, experiment_metadata.entity, exit_funct=wandb_exit_funct) as wandb_logger:
+            wandb_update_config(wandb_logger, experiment_metadata, params)
             epochs_manager = lambda model, train_rutine, val_rutine, num_epochs, train_local_logger, val_local_logger, wandb_logger : default_epochs(model, train_rutine, val_rutine, num_epochs, train_local_logger, val_local_logger, wandb_logger, models_path=models_path)
             kfolds_manager(epochs_manager, params.num_epochs, train_dataset_iterator, val_dataset_iterator, create_dataloader, model_iterator, loss_type, optim_type, kfolds_logger, wandb_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, max_batch_size=max_batch_size)
         
@@ -214,6 +215,7 @@ def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, met
         wandb_exit_funct = WandbFinalSummarize(training_type=experiment_metadata.training_type, local_logger_list=[train_local_logger, val_local_logger], best_epoch_offset=experiment_metadata.initial_epoch, best_epochs_funct=lambda : val_local_logger.best_epochs()[0])
         
         with build_wandb_logger(experiment_metadata.project_name, experiment_metadata.experiment_name, experiment_metadata.entity, exit_funct=wandb_exit_funct) as wandb_logger:
+            wandb_update_config(wandb_logger, experiment_metadata, params)
             if min(params.batch_size, max_batch_size) == params.batch_size:
                 train_rutine = lambda : vanilla_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, VERBOSE_BATCH=True, VERBOSE_END=True)
             else:
