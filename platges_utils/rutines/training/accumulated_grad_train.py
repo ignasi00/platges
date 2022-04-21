@@ -1,6 +1,7 @@
 
 
-def accumulated_grad_train(model, criterion, optimizer, dataloader, local_logger, batch_size, postprocess_output_and_target_funct=None, device=None, drop_last=True, *, VERBOSE_BATCH=False, VERBOSE_END=False):
+def accumulated_grad_train(model, criterion, optimizer, dataloader, local_logger, batch_size, postprocess_output_and_target_funct=None, device=None, drop_last=True, *, new_prefix=None, VERBOSE_BATCH=False, VERBOSE_END=False):
+    new_prefix = new_prefix or ''
     device = device # or torch.device('cpu')
 
     model.train()
@@ -32,4 +33,4 @@ def accumulated_grad_train(model, criterion, optimizer, dataloader, local_logger
         optimizer.step()
 
     local_logger.finish_epoch(VERBOSE=VERBOSE_END)
-    return local_logger.get_last_epoch_log()
+    return local_logger.get_last_epoch_log(new_prefix=new_prefix)

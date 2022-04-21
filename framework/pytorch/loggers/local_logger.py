@@ -70,11 +70,14 @@ class LocalLogger():
         return epochs[:num_elems].tolist()
 
     def get_one_epoch_log(self, epoch, new_prefix=None):
-        if new_prefix is not None: prefix = new_prefix
-        else : prefix = f'{self.prefix}_' or ''
+        if new_prefix is not None:
+            prefix = new_prefix
+        else:
+            prefix = f'{self.prefix}_' if self.prefix != '' else ''
+
         return {f'{prefix}{k}' : v[epoch] for k, v in self.log.items()}
 
-    def get_last_epoch_log(self, prefix=None):
+    def get_last_epoch_log(self, new_prefix=None):
         return self.get_one_epoch_log(epoch=-1, new_prefix=prefix)
 
     def print_last_epoch_summary(self, mode, extra_notes=None):

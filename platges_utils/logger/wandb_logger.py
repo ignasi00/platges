@@ -36,10 +36,10 @@ class WandbFinalSummarize(object):
         elif self.training_type in ["vanilla"]:
             best_epoch = self.best_epochs_funct()
             wandb_logger.summarize({'best_epoch' : self.best_epoch_offset + best_epoch})
-            wandb_logger.summarize(self.local_logger_list[0].get_one_epoch_log(best_epoch, prefix="train_"))
-            wandb_logger.summarize(self.local_logger_list[1].get_one_epoch_log(best_epoch, prefix="valid_"))
+            wandb_logger.summarize(self.local_logger_list[0].get_one_epoch_log(best_epoch, new_prefix="train_"))
+            wandb_logger.summarize(self.local_logger_list[1].get_one_epoch_log(best_epoch, new_prefix="valid_"))
             for i, local_logger in enumerate(self.local_logger_list[2:]):
-                wandb_logger.summarize(local_logger.get_one_epoch_log(best_epoch, prefix=f"extra{i + 2}_"))
+                wandb_logger.summarize(local_logger.get_one_epoch_log(best_epoch, new_prefix=f"extra{i + 2}_"))
                 
         else:
             raise Exception(f"Undefined training_type: {self.training_type}\nMaybe it is defined but not contemplated on the WandbFinalSummarize class.")

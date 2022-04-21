@@ -1,6 +1,7 @@
 
 
-def vanilla_train(model, criterion, optimizer, dataloader, local_logger, postprocess_output_and_target_funct=None, device=None, *, VERBOSE_BATCH=False, VERBOSE_END=False):
+def vanilla_train(model, criterion, optimizer, dataloader, local_logger, postprocess_output_and_target_funct=None, device=None, *, new_prefix=None, VERBOSE_BATCH=False, VERBOSE_END=False):
+    new_prefix = new_prefix or ''
     device = device # or torch.device('cpu')
 
     model.train()
@@ -25,4 +26,4 @@ def vanilla_train(model, criterion, optimizer, dataloader, local_logger, postpro
         local_logger.update_epoch_log(output, target, loss, VERBOSE=VERBOSE_BATCH)
 
     local_logger.finish_epoch(VERBOSE=VERBOSE_END)
-    return local_logger.get_last_epoch_log()
+    return local_logger.get_last_epoch_log(new_prefix=new_prefix)

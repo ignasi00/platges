@@ -2,7 +2,8 @@
 import torch
 
 
-def vanilla_validate(model, criterion, dataloader, local_logger, postprocess_output_and_target_funct=None, device=None, model_eval=True, *, VERBOSE_BATCH=False, VERBOSE_END=False):
+def vanilla_validate(model, criterion, dataloader, local_logger, postprocess_output_and_target_funct=None, device=None, model_eval=True, *, new_prefix=None, VERBOSE_BATCH=False, VERBOSE_END=False):
+    new_prefix = new_prefix or ''
     device = device # or torch.device('cpu')
     
     if model_eval : model.eval()
@@ -24,4 +25,4 @@ def vanilla_validate(model, criterion, dataloader, local_logger, postprocess_out
             local_logger.update_epoch_log(output, target, loss, VERBOSE=VERBOSE_BATCH)
 
     local_logger.finish_epoch(VERBOSE=VERBOSE_END)
-    return local_logger.get_last_epoch_log()
+    return local_logger.get_last_epoch_log(new_prefix=new_prefix)

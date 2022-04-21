@@ -16,7 +16,7 @@ experiment_metadata = SimpleNamespace(
     num_folds       = 1,
     output_root     = f"./outputs/segmentation/",
     models_root     = f"model_parameters/segmentation/",
-    experiment_name = datetime.now().strftime(f"%Y%m%d%H%M%S_segmentation"),
+    experiment_name = None,
     initial_epoch   = 0,
     project_name    = 'platgesBCN',
     entity          = 'ignasi00'
@@ -136,7 +136,7 @@ def parse_args(argv):
         num_folds       = 1,
         output_root     = opts['--output_root'],
         models_root     = opts['--models_root'],
-        experiment_name = opts['--experiment_name'],
+        experiment_name = opts['--experiment_name'] != 'None' or datetime.now().strftime(f"%Y%m%d%H%M%S_{opts['--experiment_type']}"),
         initial_epoch   = int(opts['--initial_epoch']),
         project_name    = opts['--project_name'],
         entity          = opts['--entity']
