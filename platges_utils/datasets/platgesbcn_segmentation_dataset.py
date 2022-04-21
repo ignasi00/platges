@@ -48,7 +48,7 @@ def resolve_ambiguity_platgesBCN(model_output, target, resolve=True):
     target[ambiguity_correct_mask] = output[ambiguity_correct_mask].type(target.dtype)
 
     # The rest of the ambiguous mask is the nearest class (water or sand); something like a watershed
-    watershed_img = torch.zeros([target.shape[0], 2, *target.shape[1:]]).type(torch.float32)
+    watershed_img = torch.zeros([target.shape[0], 2, *target.shape[1:]], dtype=torch.float32, device=model_output.device)
     watershed_img[:, 1, :, :] = (target == SAND_ID).type(torch.float32)
     watershed_img[:, 0, :, :] = (target == WATER_ID).type(torch.float32)
 
