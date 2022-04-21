@@ -88,10 +88,10 @@ params = SimpleNamespace(
 
 
 # Each namespace has its own bacause later one may change and the other no
-def experiment_metadata_add_elem(experiment_metadata, elem_name, elem)  : setattr(experiment_metadata, elem_name, elem)
-def params_add_elem(params, elem_name, elem)                            : setattr(params, elem_name, elem)
-def experiment_metadata_dict(experiment_metadata)                       : vars(experiment_metadata)
-def params_dict(params)                                                 : vars(params)
+def experiment_metadata_add_elem(experiment_metadata, elem_name, elem)  : return setattr(experiment_metadata, elem_name, elem)
+def params_add_elem(params, elem_name, elem)                            : return setattr(params, elem_name, elem)
+def experiment_metadata_dict(experiment_metadata)                       : return vars(experiment_metadata)
+def params_dict(params)                                                 : return vars(params)
 
 
 ####################################
