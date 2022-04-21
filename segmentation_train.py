@@ -150,9 +150,10 @@ def get_optim_type(optim_name, params):
     else:
         raise Exception(f"Undefined optim_name: {optim_name}\nMaybe it is defined but not contemplated on the script (experiment).")
 
-def copy_iterator_from_params(constructor, params, num_folds):
+def model_iterator_from_params(model_type, params, num_folds, device=None):
+    device = device or torch.device('cpu')
     for _ in range(num_folds):
-        yield constructor(params)
+        yield model_type(params).to(device)
 
 def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, metrics_funct_dict=None):
     device = device or torch.device('cpu')
@@ -183,7 +184,7 @@ def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, met
 
         train_dataset_iterator, val_dataset_iterator = build_kfolds_datasets_iterators(experiment_metadata.lists_paths, folds, base_dataset_type, params)
         
-        model_iterator = copy_iterator_from_params(model_type, params, num_folds)
+        model_iterator = model_iterator_from_params(model_type, params, num_folds, device=device)
         
         kfolds_logger = KfoldsLocalLogger(metrics_funct_dict.copy(), num_folds, key=None, maximize=True, train_prefix="Train", val_prefix="Valid")
         
@@ -203,7 +204,7 @@ def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, met
         train_dataloader = create_dataloader(train_dataset)
         val_dataloader = create_dataloader(val_dataset)
 
-        model = model_type(params)
+        model = model_type(params).to(device)
         criterion = loss_type(model)
         optim = optim_type(model)
 
