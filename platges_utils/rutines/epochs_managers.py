@@ -2,7 +2,7 @@
 import torch
 
 
-def default_epochs(train_rutine, val_rutine, num_epochs, train_local_logger, val_local_logger, wandb_logger, *, epoch_offset=0, models_path='./model_parameters/model.pt'):
+def default_epochs(model, train_rutine, val_rutine, num_epochs, train_local_logger, val_local_logger, wandb_logger, *, epoch_offset=0, models_path='./model_parameters/model.pt'):
     for epoch in range(epoch_offset, num_epochs + epoch_offset):
 
         last_train_epoch_log = train_rutine()

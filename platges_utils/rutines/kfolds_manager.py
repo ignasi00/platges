@@ -42,7 +42,7 @@ def kfolds_manager(
             train_rutine = lambda : accumulated_grad_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, drop_last=True, VERBOSE_BATCH=True, VERBOSE_END=True)
         val_rutine = lambda : vanilla_validate(model, criterion, val_dataloader, val_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, VERBOSE_BATCH=True, VERBOSE_END=True)
         
-        epochs_manager(train_rutine, val_rutine, num_epochs, train_local_logger, val_local_logger, wandb_logger)
+        epochs_manager(model, train_rutine, val_rutine, num_epochs, train_local_logger, val_local_logger, wandb_logger)
 
         best_epoch = kfolds_logger.finish_fold()
 

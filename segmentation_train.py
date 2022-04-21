@@ -220,7 +220,7 @@ def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, met
                 train_rutine = lambda : accumulated_grad_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, drop_last=True, VERBOSE_BATCH=True, VERBOSE_END=True)
             val_rutine = lambda : vanilla_validate(model, criterion, val_dataloader, val_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, VERBOSE_BATCH=True, VERBOSE_END=True)
             
-            default_epochs(train_rutine, val_rutine, params.num_epochs, train_local_logger, val_local_logger, wandb_logger, epoch_offset=experiment_metadata.initial_epoch, models_path=models_path)
+            default_epochs(model, train_rutine, val_rutine, params.num_epochs, train_local_logger, val_local_logger, wandb_logger, epoch_offset=experiment_metadata.initial_epoch, models_path=models_path)
     else:
         raise Exception(f"Undefined training_type: {experiment_metadata.training_type}\nMaybe it is defined but not contemplated on the script (experiment).")
 
