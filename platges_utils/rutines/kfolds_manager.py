@@ -37,10 +37,10 @@ def kfolds_manager(
         # wandb_logger.watch_model(model, log="all", log_freq=50) <- Big models weights too much
 
         if min(batch_size, max_batch_size) == batch_size:
-            train_rutine = lambda : vanilla_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, VERBOSE_BATCH=True, VERBOSE_END=True)
+            train_rutine = lambda : vanilla_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, new_prefix=f'train_{kfolds_logger.get_current_fold()}-{kfolds_logger.get_num_folds()}_', VERBOSE_BATCH=True, VERBOSE_END=True)
         else:
-            train_rutine = lambda : accumulated_grad_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, drop_last=True, VERBOSE_BATCH=True, VERBOSE_END=True)
-        val_rutine = lambda : vanilla_validate(model, criterion, val_dataloader, val_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, VERBOSE_BATCH=True, VERBOSE_END=True)
+            train_rutine = lambda : accumulated_grad_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, drop_last=True, new_prefix=f'train_{kfolds_logger.get_current_fold()}-{kfolds_logger.get_num_folds()}_', VERBOSE_BATCH=True, VERBOSE_END=True)
+        val_rutine = lambda : vanilla_validate(model, criterion, val_dataloader, val_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, new_prefix=f'valid_{kfolds_logger.get_current_fold()}-{kfolds_logger.get_num_folds()}_', VERBOSE_BATCH=True, VERBOSE_END=True)
         
         epochs_manager(model, train_rutine, val_rutine, num_epochs, train_local_logger, val_local_logger, wandb_logger)
 
