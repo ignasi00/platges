@@ -11,8 +11,8 @@ class KfoldsLocalLogger():
 
         self.train_prefix = train_prefix
         self.val_prefix = val_prefix
-        self.train_local_loggers = None
-        self.val_local_loggers = None
+        self.train_local_logger = None
+        self.val_local_logger = None
 
         self.num_folds = num_folds
         self.current_fold = 0
@@ -34,13 +34,13 @@ class KfoldsLocalLogger():
             train_prefix = self.train_prefix
             val_prefix = self.val_prefix
 
-        self.train_local_loggers = LocalLogger(self.metric_funct_dict.copy(), size_dataset=train_len_dataset, prefix=train_prefix)
-        self.val_local_loggers = LocalLogger(self.metric_funct_dict.copy(), size_dataset=val_len_dataset, prefix=val_prefix)
+        self.train_local_logger = LocalLogger(self.metric_funct_dict.copy(), size_dataset=train_len_dataset, prefix=train_prefix)
+        self.val_local_logger = LocalLogger(self.metric_funct_dict.copy(), size_dataset=val_len_dataset, prefix=val_prefix)
 
-        return self.train_local_loggers, self.val_local_loggers
+        return self.train_local_logger, self.val_local_logger
 
     def get_current_local_loggers(self):
-        return self.train_local_loggers, self.val_local_loggers
+        return self.train_local_logger, self.val_local_logger
 
     def finish_fold(self):
         best_epoch = self.val_local_logger.best_epochs(key=self.key, maximize=self.maximize)[0]
