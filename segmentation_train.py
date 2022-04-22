@@ -217,10 +217,10 @@ def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, met
         with build_wandb_logger(experiment_metadata.project_name, experiment_metadata.experiment_name, experiment_metadata.entity, exit_funct=wandb_exit_funct) as wandb_logger:
             wandb_update_config(wandb_logger, experiment_metadata, params)
             if min(params.batch_size, max_batch_size) == params.batch_size:
-                train_rutine = lambda : vanilla_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, VERBOSE_BATCH=True, VERBOSE_END=True)
+                train_rutine = lambda : vanilla_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, new_prefix='train_', VERBOSE_BATCH=True, VERBOSE_END=True)
             else:
-                train_rutine = lambda : accumulated_grad_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, drop_last=True, VERBOSE_BATCH=True, VERBOSE_END=True)
-            val_rutine = lambda : vanilla_validate(model, criterion, val_dataloader, val_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, VERBOSE_BATCH=True, VERBOSE_END=True)
+                train_rutine = lambda : accumulated_grad_train(model, criterion, optim, train_dataloader, train_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, drop_last=True, new_prefix='train_', VERBOSE_BATCH=True, VERBOSE_END=True)
+            val_rutine = lambda : vanilla_validate(model, criterion, val_dataloader, val_local_logger, postprocess_output_and_target_funct=postprocess_output_and_target_funct, new_prefix='valid_', VERBOSE_BATCH=True, VERBOSE_END=True)
             
             default_epochs(model, train_rutine, val_rutine, params.num_epochs, train_local_logger, val_local_logger, wandb_logger, epoch_offset=experiment_metadata.initial_epoch, models_path=models_path)
     else:
