@@ -37,7 +37,7 @@ class WandbFinalSummarize(object):
             })
 
             best_fold = np.argmax(v_best_valid)
-            experiment_best_fold_name = f'{wandb_logger.get_base_experiment_name()}_{best_fold + 1}-{wandb_logger.get_experiment_name().split('-')[-1]}'
+            experiment_best_fold_name = f'{wandb_logger.get_base_experiment_name()}_{best_fold + 1}-{wandb_logger.get_experiment_name().split("-")[-1]}'
 
             wandb_logger.change_experiment_name(experiment_best_fold_name)
             best_model_alia = f'epoch_{v_best_epoch[best_fold]}'
