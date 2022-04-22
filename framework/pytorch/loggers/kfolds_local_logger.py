@@ -45,8 +45,8 @@ class KfoldsLocalLogger():
     def finish_fold(self):
         best_epoch = self.val_local_logger.best_epochs(key=self.key, maximize=self.maximize)[0]
 
-        self.v_best_train.append(train_local_logger.get_one_epoch_log(best_epoch, new_prefix=f"train_"))
-        self.v_best_valid.append(val_local_logger.get_one_epoch_log(best_epoch, new_prefix=f"valid_"))
+        self.v_best_train.append(self.train_local_logger.get_one_epoch_log(best_epoch, new_prefix=f"train_"))
+        self.v_best_valid.append(self.val_local_logger.get_one_epoch_log(best_epoch, new_prefix=f"valid_"))
 
         self.v_best_epoch.append(best_epoch)
         return best_epoch
