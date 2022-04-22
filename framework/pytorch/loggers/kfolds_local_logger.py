@@ -52,4 +52,4 @@ class KfoldsLocalLogger():
         return best_epoch
 
     def get_results(self):
-        return self.v_best_train, self.v_best_valid, f'train_{self.key}', f'valid_{self.key}'
+        return self.v_best_epoch, self.v_best_train, self.v_best_valid, f'train_{self.key}', f'valid_{self.key}'

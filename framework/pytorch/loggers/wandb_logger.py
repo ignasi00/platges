@@ -18,6 +18,7 @@ class WandbLogger():
         self.base_experiment_name = experiment_name
 
     def get_base_experiment_name(self) : return self.base_experiment_name
+    def get_experiment_name(self) : return self.experiment_name
 
     def change_experiment_name(self, experiment_name):
         # By instance, for K-folds
