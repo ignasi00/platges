@@ -23,4 +23,4 @@ def default_epochs(model, train_rutine, val_rutine, num_epochs, train_local_logg
         wandb_logger.upload_model(models_path, aliases=[f'epoch_{epoch}'], wait=wait)
 
         # commit all epoch log
-        wandb_logger.log({'epoch' : epoch}, step=epoch, commit=True)
+        wandb_logger.log({'epoch' : epoch}, commit=True)
