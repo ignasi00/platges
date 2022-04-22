@@ -46,7 +46,7 @@ def kfolds_manager(
 
         best_epoch = kfolds_logger.finish_fold()
 
-        wandb_logger.summarize({f'best_epoch (fold {kfolds_logger.get_current_fold()}/{kfolds_logger.get_num_folds()})' : best_epoch})
+        wandb_logger.summarize({f'best_epoch_{kfolds_logger.get_current_fold()}-{kfolds_logger.get_num_folds()}' : best_epoch})
         wandb_logger.summarize(train_local_logger.get_one_epoch_log(best_epoch, new_prefix=f"train_{kfolds_logger.get_current_fold()}-{kfolds_logger.get_num_folds()}_"))
         wandb_logger.summarize(val_local_logger.get_one_epoch_log(best_epoch, new_prefix=f"valid_{kfolds_logger.get_current_fold()}-{kfolds_logger.get_num_folds()}_"))
     
