@@ -6,12 +6,12 @@ def default_epochs(model, train_rutine, val_rutine, num_epochs, train_local_logg
     for epoch in range(epoch_offset, num_epochs + epoch_offset):
 
         last_train_epoch_log = train_rutine()
-        wandb_logger.log(last_train_epoch_log, prefix="train_", step=epoch)
+        wandb_logger.log(last_train_epoch_log, prefix="train_", commit=False)
         train_local_logger.print_last_epoch_summary(mode='train')
 
         with torch.no_grad():
             last_val_epoch_log = val_rutine()
-            wandb_logger.log(last_val_epoch_log, prefix="valid_", step=epoch)
+            wandb_logger.log(last_val_epoch_log, prefix="valid_", commit=False)
             val_local_logger.print_last_epoch_summary(mode='valid')
 
          # clean up cache
