@@ -24,7 +24,7 @@ def mIoU(seg_img, ground_truth):
 
 # TODO: variant using torch (GPU-friendly)
 def torch_mIoU(seg_img, ground_truth):
-    # seg_img is B, 1, H, W (1: argmax(C))
+    # seg_img is B, 1, H, W (1: argmax(C)) => B, H, W
 
     ground_truth = ground_truth.view(-1)
     #seg_img = seg_img.argmax(dim=1)

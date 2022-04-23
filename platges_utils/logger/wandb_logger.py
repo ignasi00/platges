@@ -42,7 +42,7 @@ class WandbFinalSummarize(object):
                 experiment_best_fold_name = f'{wandb_logger.get_base_experiment_name()}_{fold + 1}-{wandb_logger.get_experiment_name().split("-")[-1]}'
                 wandb_logger.change_experiment_name(experiment_best_fold_name)
 
-                best_model_alia = f'epoch_{epoch]}'
+                best_model_alia = f'epoch_{epoch}'
                 new_alias = ['best']
                 if fold == best_fold : new_alias = new_alias + ['best_kfolds']
                 wandb_logger.update_model(best_model_alia, new_alias)
