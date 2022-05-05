@@ -4,8 +4,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from framework.pytorch.datasets.numpy_instances_dataset import NumpyInstancesDataset
-from framework.pytorch.datasets.wrapping_datasets.label_mapping_dataset import LabelListMappingDataset
+from frameworks.pytorch.datasets.numpy_instances_dataset import NumpyInstancesDataset
+from frameworks.pytorch.datasets.wrapping_datasets.label_mapping_dataset import LabelListMappingDataset
 
 
 WATER_ID = 1    # 21 # Indexes from ADE20K that does not colide with ArgusNL and there is a good color selected.

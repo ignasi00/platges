@@ -8,11 +8,11 @@ import torch
 from torch.utils.data import DataLoader
 
 from docopts.help_segmentation_test import parse_args
-from framework.pytorch.loggers.local_logger import LocalLogger
-from framework.pytorch.losses.dice_loss import DiceLoss
-from framework.pytorch.losses.focal_loss import FocalLoss
-from framework.pytorch.metrics.mIoU import torch_mIoU
-from framework.pytorch.utils.scales_process import torch_batch_scales_process_numpy
+from frameworks.pytorch.loggers.local_logger import LocalLogger
+from frameworks.pytorch.losses.dice_loss import DiceLoss
+from frameworks.pytorch.losses.focal_loss import FocalLoss
+from frameworks.pytorch.metrics.mIoU import torch_mIoU
+from frameworks.pytorch.utils.scales_process import torch_batch_scales_process_numpy
 from platges_utils.dataloader.collate_fn.segmentation_collate import build_segmentation_test_collate
 from platges_utils.datasets.argusNL_dataset import ArgusNLDataset
 from platges_utils.datasets.augmented_datasets import build_test_dataset
@@ -43,8 +43,8 @@ experiment_metadata = SimpleNamespace(
     overlapped_prefix   = 'ovr_'
 )
 
-MEAN = [0.485, 0.456, 0.406]
-STD = [0.229, 0.224, 0.225]
+MEAN = [0.485, 0.456, 0.406] # PyConvSegNet values
+STD = [0.229, 0.224, 0.225] # PyConvSegNet values
 VALUE_SCALE = 255
 params = SimpleNamespace(
     # Parameters updated from data
@@ -107,8 +107,8 @@ def save_result(input_, output, target, img_path, experiment_metadata, params, c
 def get_postprocess_output_and_target_funct(dataset):
     if dataset == 'platgesBCN':
         def postprocess_platges(output, target):
-            output, target = resolve_ambiguity_platgesBCN(output, target, resolve=False)
-            return output.max(1)[1], target
+            output, target = resolve_ambiguity_platgesBCN(output, target, resolve=False) # output is B, H, W
+            return output, target # No need output.max(1)[1]
     #elif dataset == '':
     else:
         return None
@@ -140,6 +140,7 @@ def main(experiment_metadata, params, device, metrics_funct_dict=None):
 
     model_type = get_model_type(experiment_metadata.model_name)
     model = model_type(params)
+    # model.eval() # <- When mode evaluation (no dropout, fixed batchnorm2d), all becomes 0; I don't know why
 
     criterion = lambda output, target : 1234
 
@@ -148,13 +149,13 @@ def main(experiment_metadata, params, device, metrics_funct_dict=None):
 
     def model_applier(batch_images):
         output = torch_batch_scales_process_numpy(model, batch_images, params.num_classes, params.crop_height, params.crop_width, params.mean, params.std, params.scales, base_size=0, stride_rate=params.stride_rate, device=device)
-        return torch.tensor(np.array(output))
+        return torch.tensor(np.array(output)) # It's a B, H, W tensor mask
 
     postprocess_output_and_target_funct = get_postprocess_output_and_target_funct(experiment_metadata.dataset)
 
     with torch.no_grad():
         for input_, target, img_pathes in dataloader:
-            output = model_applier(input_)
+            output = model_applier(input_) # Returns B, H, W tensor masks
 
             if postprocess_output_and_target_funct is not None:
                 output, target = postprocess_output_and_target_funct(output, target)

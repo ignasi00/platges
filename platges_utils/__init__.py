@@ -2,7 +2,7 @@
 # except add previous folder to pythonpath (wishing it will work)
 
 try:
-    import framework
+    import frameworks
 except:
     import os
     import sys
@@ -13,4 +13,4 @@ except:
     
     sys.path.append(PROJECT_ROOT)
 
-    import framework
+    import frameworks

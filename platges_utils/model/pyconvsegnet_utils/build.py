@@ -2,10 +2,10 @@
 import torch
 import torch.nn as nn
 
-from framework.pytorch.models.expressions.resnet import ResNet, resnet50, resnet101, resnet152
-from framework.pytorch.models.expressions.resnet import PyConvResNet, pyconvresnet50, pyconvresnet101, pyconvresnet152
-from framework.pytorch.models.expressions.pyconvsegnet import PyConvSegNet, PyConvHead
-from framework.pytorch.models.utils.feature_extractor import FeatureExtractor
+from frameworks.pytorch.models.expressions.resnet import ResNet, resnet50, resnet101, resnet152
+from frameworks.pytorch.models.expressions.resnet import PyConvResNet, pyconvresnet50, pyconvresnet101, pyconvresnet152
+from frameworks.pytorch.models.expressions.pyconvsegnet import PyConvSegNet, PyConvHead
+from frameworks.pytorch.models.utils.feature_extractor import FeatureExtractor
 
 
 def build_pyConvSegNet(num_classes, layers=152, dropout=0.1, zoom_factor=8, BatchNorm=nn.BatchNorm2d, backbone_output_stride=8, backbone_net='pyconvresnet', out_merge_all=256, aux=True):

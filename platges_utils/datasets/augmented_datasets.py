@@ -5,7 +5,7 @@ import albumentations as A
 import albumentations.pytorch
 import cv2
 
-from framework.pytorch.datasets.wrapping_datasets.transforms_dataset import TransformDataset
+from frameworks.pytorch.datasets.wrapping_datasets.transforms_dataset import TransformDataset
 
 from .concat_dataset import build_concat_dataset
 

@@ -6,9 +6,9 @@ import sys
 from types import SimpleNamespace
 from torch.utils.data import DataLoader
 
-from framework.pytorch.datasets.images_group_dataset import ImagesGroupDataset
+from frameworks.pytorch.datasets.images_group_dataset import ImagesGroupDataset
 from docopts.help_panoramica import parse_args
-from framework.opencv.overlap_finder import BatchOverlapFinder, RANSAC_MatrixFinder
+from frameworks.opencv.overlap_finder import BatchOverlapFinder, RANSAC_MatrixFinder
 
 from extern.superpoints_utils import SuperPointFrontend
 from extern.superpoints_utils import apply_net_eval as apply_superpoints_eval

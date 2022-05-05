@@ -9,7 +9,8 @@ def build_segmentation_collate(device=None):
             inputs = []
             targets = []
 
-            for input_, target in batch:
+            for data in batch:
+                input_, target = data[:2]
                 inputs.append(torch.FloatTensor(input_))
                 targets.append(torch.IntTensor(target))
 

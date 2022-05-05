@@ -2,7 +2,7 @@
 import contextlib
 import numpy as np
 
-from framework.pytorch.loggers.wandb_logger import WandbLogger
+from frameworks.pytorch.loggers.wandb_logger import WandbLogger
 
 
 class WandbFinalSummarize(object):

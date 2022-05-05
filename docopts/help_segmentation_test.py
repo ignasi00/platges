@@ -16,8 +16,8 @@ experiment_metadata = SimpleNamespace(
     overlapped_prefix   = 'ovr_'
 )
 
-MEAN = [0.485, 0.456, 0.406]
-STD = [0.229, 0.224, 0.225]
+MEAN = [0.4662, 0.5510, 0.5292] # Platges2021 values
+STD = [0.2596, 0.1595, 0.1578] # Platges2021 values
 VALUE_SCALE = 255
 params = SimpleNamespace(
     # Parameters updated from data

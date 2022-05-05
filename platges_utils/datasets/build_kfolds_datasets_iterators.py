@@ -1,5 +1,5 @@
 
-from framework.pytorch.datasets.utils.build_kfolds_datasets_generators import build_kfolds_datasets_generators
+from frameworks.pytorch.datasets.utils.build_kfolds_datasets_generators import build_kfolds_datasets_generators
 
 from .augmented_datasets import build_train_dataset, build_val_dataset
 from .concat_dataset import build_concat_dataset

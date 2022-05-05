@@ -5,7 +5,7 @@ import torch
 def vanilla_infer(model, dataloader, single_output_funct=None, list_outputs_funct=None, return_outputs=True):
     # single_output_funct = lambda x : torch.max(x, 1)[1].detach().to('cpu').numpy()
     # list_outputs_funct = lambda x : np.concatenate(x)
-    #model.eval()
+    model.eval()
 
     outputs = []
     with torch.no_grad():

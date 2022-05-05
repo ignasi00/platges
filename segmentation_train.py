@@ -9,12 +9,12 @@ import torch
 from torch.utils.data import DataLoader
 
 from docopts.help_segmentation_train import parse_args
-from framework.pytorch.datasets.utils.build_kfolds_datasets_generators import build_kfolds_datasets_generators
-from framework.pytorch.loggers.kfolds_local_logger import KfoldsLocalLogger
-from framework.pytorch.loggers.local_logger import LocalLogger
-from framework.pytorch.losses.dice_loss import DiceLoss
-from framework.pytorch.losses.focal_loss import FocalLoss
-from framework.pytorch.metrics.mIoU import torch_mIoU
+from frameworks.pytorch.datasets.utils.build_kfolds_datasets_generators import build_kfolds_datasets_generators
+from frameworks.pytorch.loggers.kfolds_local_logger import KfoldsLocalLogger
+from frameworks.pytorch.loggers.local_logger import LocalLogger
+from frameworks.pytorch.losses.dice_loss import DiceLoss
+from frameworks.pytorch.losses.focal_loss import FocalLoss
+from frameworks.pytorch.metrics.mIoU import torch_mIoU
 from platges_utils.dataloader.collate_fn.segmentation_collate import build_segmentation_collate
 from platges_utils.datasets.argusNL_dataset import ArgusNLDataset
 from platges_utils.datasets.augmented_datasets import build_train_dataset, build_val_dataset
@@ -102,12 +102,27 @@ def wandb_update_config(wandb_logger, experiment_metadata, params):
     summary.update(params_dict(params))
     wandb_logger.summarize(summary)
 
-def get_mean_and_std(dataset=None, params=None, value_scale=255):
-    # TODO: As a dataset is used, it should be enough to estmate them. And for sample inference, it should be a parameter obtained from all the training data.
-    mean = [0.485, 0.456, 0.406]
-    mean = [item * value_scale for item in mean]
-    std = [0.229, 0.224, 0.225]
-    std = [item * value_scale for item in std]
+def get_mean_and_std(dataset=None, value_scale=255, collate_fn=None):
+    
+    dataloader = DataLoader(dataset, batch_size=1, collate_fn=collate_fn)
+
+    channels_sum = 0
+    channels_squared_sum = 0
+    num_batches = 0
+
+    for data, _ in dataloader:
+        # data shape: B, H, W, C
+        
+        # Mean over batch, height and width, but not over the channels
+        channels_sum += torch.mean(data, dim=[0, 1, 2])
+        channels_squared_sum += torch.mean(data ** 2, dim=[0, 1, 2])
+        num_batches += 1
+    
+    mean = channels_sum / num_batches
+
+    # std = sqrt(E[X^2] - (E[X])^2)
+    std = (channels_squared_sum / num_batches - mean ** 2) ** 0.5
+
     return mean, std
 
 def get_postprocess_output_and_target_funct(dataset):
@@ -158,6 +173,7 @@ def model_iterator_from_params(model_type, params, num_folds, device=None):
 def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, metrics_funct_dict=None):
     device = device or torch.device('cpu')
 
+    collate_fn = build_segmentation_collate(device=device)
     base_dataset_type = get_base_dataset_type(experiment_metadata.dataset)
     model_type = get_model_type(experiment_metadata.model_name)
     loss_type = get_loss_type(experiment_metadata.loss_name, params)
@@ -165,13 +181,12 @@ def main(experiment_metadata, params, device, max_batch_size=MAX_BATCH_SIZE, met
 
     postprocess_output_and_target_funct = get_postprocess_output_and_target_funct(experiment_metadata.dataset)
 
-    mean, std = get_mean_and_std(dataset=build_concat_dataset(experiment_metadata.lists_paths, base_dataset_type), params=params, value_scale=255)
+    mean, std = get_mean_and_std(dataset=build_concat_dataset(experiment_metadata.lists_paths, base_dataset_type), value_scale=255, collate_fn=collate_fn)
     params_add_elem(params, 'mean', mean)
     params_add_elem(params, 'std', std)
 
     metrics_funct_dict = metrics_funct_dict or {'mIoU' : lambda seg_img, ground_truth : torch_mIoU(seg_img.argmax(dim=1), ground_truth)}
 
-    collate_fn = build_segmentation_collate(device=device)
     create_dataloader = lambda dataset : DataLoader(dataset, batch_size=min(params.batch_size, max_batch_size), collate_fn=collate_fn)
 
     models_path = f'{experiment_metadata.models_root}/{experiment_metadata.experiment_type}.pt'

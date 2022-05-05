@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from framework.pytorch.datasets.numpy_instances_dataset import NumpyInstancesDataset
+from frameworks.pytorch.datasets.numpy_instances_dataset import NumpyInstancesDataset
 
 
 # Recordatori, TODO: It is not sure water:1 and sand:2 or viseversa, classes is a dict of "number -> name (aigua, sorra)"
@@ -33,10 +33,11 @@ class PlatgesBCNSegmentationDataset(Dataset):
 def resolve_ambiguity_platgesBCN(model_output, target, resolve=True):
     # output & target are batches of masks (B x H x W)
     # if model_output is (B x C x H x W) => resolve=True apply argmax(C) (becomes B x H x W)
+    original_target = target.detach().clone()
 
     output = model_output.max(1)[1] if resolve == True else model_output
 
-    ambiguity_mask = target == WATER_OR_SAND_ID
+    ambiguity_mask = (original_target == WATER_OR_SAND_ID)
     sand_mask = (output == SAND_ID)
     water_mask = (output == WATER_ID)
     other_mask = (output == OTHERS_ID)
@@ -49,14 +50,14 @@ def resolve_ambiguity_platgesBCN(model_output, target, resolve=True):
 
     # The rest of the ambiguous mask is the nearest class (water or sand); something like a watershed
     watershed_img = torch.zeros([target.shape[0], 2, *target.shape[1:]], dtype=torch.float32, device=model_output.device)
-    watershed_img[:, 1, :, :] = (target == SAND_ID).type(torch.float32)
-    watershed_img[:, 0, :, :] = (target == WATER_ID).type(torch.float32)
+    watershed_img[:, 1, :, :] = (original_target == SAND_ID).type(torch.float32)
+    watershed_img[:, 0, :, :] = (original_target == WATER_ID).type(torch.float32)
 
     watershed_img = distance_transform(watershed_img)
     watershed_img = watershed_img[:, 1, :, :] - watershed_img[:, 0, :, :]
 
-    new_sand_mask = ambiguity_incorrect_mask & (watershed_img >= 0)
-    new_water_mask = ambiguity_incorrect_mask & (watershed_img < 0)
+    new_sand_mask = ambiguity_incorrect_mask & (watershed_img < 0)
+    new_water_mask = ambiguity_incorrect_mask & (watershed_img >= 0)
 
     target[new_sand_mask] = SAND_ID
     target[new_water_mask] = WATER_ID
