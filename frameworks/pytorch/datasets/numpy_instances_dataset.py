@@ -22,8 +22,8 @@ class NumpyInstancesDataset(Dataset):
     
     def __getitem__(self, idx):
 
-        rows = self.table_of_pathes.iloc[idx]
-        img_path, seg_path, cls_path = [rows[IMAGES], rows[SEGMENTS], rows[CLASSES]]
+        row = self.table_of_pathes.iloc[idx]
+        img_path, seg_path, cls_path = [row[IMAGES], row[SEGMENTS], row[CLASSES]]
 
         image = cv2.imread(f"{self.data_root}/{img_path}", self.read_flag) # (#row, #col, #color) (shape = H, W, 3)
         if self.read_flag == cv2.IMREAD_COLOR : image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

@@ -2,7 +2,7 @@
 import os
 import pandas as pd
 
-from .utils.split_list import split_pandas
+#from .utils.split_list import split_pandas
 
 
 IMAGES = 'images'
