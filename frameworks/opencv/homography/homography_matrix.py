@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 
-from .utils import _image_idx_iterator
+from .utils import _image_idx_iterator, compute_path_homography, compute_dimensions
 
 
 def _default_point_finder():
@@ -106,7 +106,10 @@ class BatchHomographyMatrixEstimator():
 
     def forward(self, imgs, masks=None, base_idx=0):
         homographies = [None] * len(imgs)
+        homographies[base_idx] = np.eye(3, 3)
         H, matches, inliers_mask, n_matches = self.homographies_computator(imgs, masks)
+
+        composed_img = np.ones(imgs[base_idx].shape[:2])
 
         translation = np.eye(3, 3)
         for current_idxs in _image_idx_iterator(n_matches, base_idx):
@@ -116,8 +119,10 @@ class BatchHomographyMatrixEstimator():
                 continue
             homography_matrix = translation * homography_matrix
 
+            current_img = np.ones(imgs[current_idxs[-1]].shape[:2])
             max_x, min_x, max_y, min_y = compute_dimensions(composed_img, current_img, homography_matrix)
             translation_matrix = np.matrix([[1.0, 0.0, -min_x],[0.0, 1.0, -min_y],[0.0, 0.0, 1.0]])
+            composed_img = np.ones((composed_img.shape[0] - min_x, composed_img.shape[1] - min_y))
 
             homography_matrix = translation_matrix * homography_matrix # * image
 

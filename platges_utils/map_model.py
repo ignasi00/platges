@@ -73,15 +73,15 @@ class MapModel():
     def save_map_model(self, name=None, root='./'):
 
         images, masks, homographies, gps = self.get_elements()
-        name = name or map_model.get_name()
+        name = name or self.get_name()
 
         filename = f'{root}/{name}.hdf5'
 
         with h5py.File(filename, 'w') as f:
-            f.create_dataset(IMAGES, images)
-            f.create_dataset(MASKS, masks)
-            f.create_dataset(HOMOGRAPHIES, homographies)
-            f.create_dataset(GPS, gps)
+            f.create_dataset(IMAGES, data=np.asarray(images), shape=np.asarray(images).shape)
+            f.create_dataset(MASKS, data=np.asarray(masks), shape=np.asarray(masks).shape)
+            f.create_dataset(HOMOGRAPHIES, data=np.asarray(homographies), shape=np.asarray(homographies).shape)
+            f.create_dataset(GPS, data=np.asarray(gps), shape=np.asarray(gps).shape)
             f.attrs[NAME] = name
 
 def gps_search_map_model(gps, map_model_filename_list, limit=0):
@@ -92,8 +92,8 @@ def gps_search_map_model(gps, map_model_filename_list, limit=0):
     best_score = np.inf
     for filename in map_model_filename_list:
         with context_map_model(filename) as map_model:
-            model_gps = np.array(map_model[GPS]) # shape N x 2
-            score = np.min(np.norm(model_gps - gps, axis=1))
+            model_gps = np.array(map_model.get_elements()[3]) # shape N x 2
+            score = np.min(np.linalg.norm(model_gps - gps, axis=1))
             
             if score < best_score:
                 best_score = score

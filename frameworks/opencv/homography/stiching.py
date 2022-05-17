@@ -16,9 +16,9 @@ def color_matrix_applier(img, h, size):
     except:
         return default_matrix_applier(img, h, size)
 
-    img_C = np.zeros((size[0], size[1], C))
+    img_C = np.zeros((size[1], size[0], C))
     for i in range(C):
-        img_C[:, :, 0] = cv2.warpPerspective(img[:, :, 0], h, size, flags=cv2.INTER_LINEAR)
+        img_C[:, :, i] = cv2.warpPerspective(img[:, :, i].copy(), h, size, flags=cv2.INTER_LINEAR)
     
     return img_C
 
@@ -39,7 +39,7 @@ def color_blender(composed_img, current_img):
 
     return img_C
 
-def make_stiching(x, H, n_matches, base_idx=0, matrix_applier=None, blender=None):
+def compute_stiching(x, H, n_matches, base_idx=0, matrix_applier=None, blender=None):
     # Stitch as much images over the base_idx image plane as posible
 
     matrix_applier = matrix_applier or default_matrix_applier
@@ -74,4 +74,24 @@ def make_stiching(x, H, n_matches, base_idx=0, matrix_applier=None, blender=None
         current_img = matrix_applier(current_img, homography_matrix, (width, height))
         composed_img = blender(composed_img, current_img)
 
+    return composed_img
+
+def make_stiching(x, h, base_idx=0, matrix_applier=None, blender=None):
+
+    matrix_applier = matrix_applier or default_matrix_applier
+    blender = blender or default_blender
+
+    composed_img = np.zeros_like(x[base_idx])
+
+    for img, ht in zip(x, h):
+
+        current_img = img.copy()
+
+        max_x, min_x, max_y, min_y = compute_dimensions(composed_img, current_img, ht)
+        width = int(max_x - min_x + 1)
+        height = int(max_y - min_y + 1)
+
+        current_img = matrix_applier(current_img, ht, (width, height))
+        composed_img = blender(composed_img, current_img)
+    
     return composed_img

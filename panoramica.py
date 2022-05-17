@@ -8,7 +8,8 @@ from torch.utils.data import DataLoader
 
 from frameworks.pytorch.datasets.images_group_dataset import ImagesGroupDataset
 from docopts.help_panoramica import parse_args
-from frameworks.opencv.overlap_finder import BatchOverlapFinder, RANSAC_MatrixFinder
+from frameworks.opencv.homography.homography_matrix import RANSAC_MatrixFinder, BatchPairedHomographyMatrixEstimator, UnmatchedKeypoints_PointFinder, UnmatchedDescriptors_Descriptor
+from frameworks.opencv.homography.stiching import compute_stiching
 
 from extern.superpoints_utils import SuperPointFrontend
 from extern.superpoints_utils import apply_net_eval as apply_superpoints_eval
@@ -119,7 +120,7 @@ def main(list_path, point_finder_name, data_root='', outputs_root='', downsample
                 group_of_imgs = group_of_imgs[0:num_imgs]
 
             H, _, _, n_matches = model(group_of_imgs, base_idx=0)
-            panorama = make_stiching(group_of_imgs, H, n_matches, base_idx=0, matrix_applier=None, blender=None)
+            panorama = compute_stiching(group_of_imgs, H, n_matches, base_idx=0, matrix_applier=None, blender=None)
             
             cv2.imwrite(f"{outputs_root}/{n_saved}.jpg", panorama)
             n_saved += 1
