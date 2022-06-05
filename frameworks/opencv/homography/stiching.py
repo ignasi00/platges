@@ -33,9 +33,9 @@ def color_blender(composed_img, current_img):
         assert len(current_img.shape) == len(composed_img.shape)
         return default_blender(composed_img, current_img)
 
-    img_C = np.zeros_like(composed_img)
+    img_C = composed_img.copy()
     for i in range(C):
-        img_C[composed_img[:, :, i] == 0, i] = current_img[composed_img[:, :, i] == 0, i]
+        img_C[composed_img[:, :, ..., i] == 0, ..., i] = current_img[composed_img[:, :, ..., i] == 0, ..., i]
 
     return img_C
 
@@ -91,6 +91,7 @@ def make_stiching(x, h, base_idx=0, matrix_applier=None, blender=None):
         width = int(max_x - min_x + 1)
         height = int(max_y - min_y + 1)
 
+        composed_img = matrix_applier(composed_img, np.eye(3), (width, height))
         current_img = matrix_applier(current_img, ht, (width, height))
         composed_img = blender(composed_img, current_img)
     

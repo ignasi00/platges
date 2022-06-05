@@ -16,12 +16,13 @@ def compute_dimensions(composed_img, current_img, homography_matrix):
 
     h, w = current_img.shape[:2]
     pts = np.float32([ [0,0], [0,h-1], [w-1,h-1], [w-1,0] ]).reshape(-1,1,2)
+
     next_corners = cv2.perspectiveTransform(pts, homography_matrix)
     next_corners = np.squeeze(next_corners) # Remove extra dimensions
     next_corners = np.round(next_corners).astype(int)   # Convert to integer
 
-    x_coord = np.concatenate([composed_corners, next_corners]).squeeze()[:,0]
-    y_coord =  np.concatenate([composed_corners, next_corners]).squeeze()[:,1]
+    x_coord = np.concatenate([composed_corners, next_corners]).squeeze()[:, 0]
+    y_coord =  np.concatenate([composed_corners, next_corners]).squeeze()[:, 1]
 
     max_x = x_coord.max()
     min_x = x_coord.min()
