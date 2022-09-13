@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 
-from .utils import _image_idx_iterator, compute_path_homography, compute_dimensions
+from .utils import _image_idx_iterator, compute_path_homography, compute_dimensions, compute_dimensions_from_shape
 
 
 def _default_point_finder():
@@ -14,14 +14,14 @@ def _default_point_finder():
 def _default_descriptor():
     # des, kp = descriptor_finder(ima, kp)
     descriptor_finder_obj = cv2.SIFT_create()
-    descriptor_finder = lambda img, kp : descriptor_finder_obj.compute(img, kp)
+    descriptor_finder = lambda img, kp : descriptor_finder_obj.compute(img, kp)[::-1]
     return descriptor_finder
 
 def _default_matrix_finder():
     # H12, matches, inliers_mask = matrix_finder(kp1, des1, kp2, des2) # if no H found, H == None
     bf = cv2.BFMatcher(crossCheck=True) # Brute Force Matcher
     point_matcher = lambda des1, des2 : bf.match(des1, des2)
-    matrix_finder = RANSAC_MatrixEstimator(point_matcher=point_matcher, MIN_MATCH_COUNT=4, ransacReprojThreshold=5.0, maxIters=5)
+    matrix_finder = RANSAC_MatrixEstimator(point_matcher=point_matcher, min_match_count=4, ransacReprojThreshold=5.0, maxIters=5)
     return matrix_finder
 
 def compute_homography(img1, img2, mask1=None, mask2=None, point_finder=None, descriptor_finder=None, matrix_finder=None):
@@ -41,7 +41,7 @@ class HomographyMatrixEstimator():
     def __init__(self, point_finder=None, descriptor_finder=None, matrix_finder=None):
         
         self.point_finder = point_finder or _default_point_finder()
-        self.descriptor_finder = descriptor_finder or _default_descriptor_finder()
+        self.descriptor_finder = descriptor_finder or _default_descriptor()
         self.matrix_finder = matrix_finder or _default_matrix_finder()
     
     def forward(self, img1, img2, mask1=None, mask2=None):
@@ -56,7 +56,7 @@ class BatchPairedHomographyMatrixEstimator():
     def __init__(self, point_finder=None, descriptor_finder=None, matrix_finder=None):
         
         self.point_finder = point_finder or _default_point_finder()
-        self.descriptor_finder = descriptor_finder or _default_descriptor_finder()
+        self.descriptor_finder = descriptor_finder or _default_descriptor()
         self.matrix_finder = matrix_finder or _default_matrix_finder()
     
     def forward(self, imgs, masks=None):
@@ -109,7 +109,7 @@ class BatchHomographyMatrixEstimator():
         homographies[base_idx] = np.matrix(np.eye(3, 3))
         H, matches, inliers_mask, n_matches = self.homographies_computator(imgs, masks)
 
-        composed_img = np.ones(imgs[base_idx].shape[:2])
+        composed_img_shape = imgs[base_idx].shape[:2]
 
         translation = np.matrix(np.eye(3, 3))
         for current_idxs in _image_idx_iterator(n_matches, base_idx):
@@ -123,14 +123,14 @@ class BatchHomographyMatrixEstimator():
             homography_matrix = translation * homography_matrix
             current_img = np.ones(imgs[current_idxs[-1]].shape[:2])
 
-            max_x, min_x, max_y, min_y = compute_dimensions(composed_img, current_img, homography_matrix)
+            max_x, min_x, max_y, min_y = compute_dimensions_from_shape(composed_img_shape, current_img, homography_matrix)
             width = int(max_x - min_x + 1)
             height = int(max_y - min_y + 1)
 
             translation_matrix = np.matrix([[1.0, 0.0, -min_x],[0.0, 1.0, -min_y],[0.0, 0.0, 1.0]])
             translation = translation_matrix * translation
 
-            composed_img = np.ones((height, width))
+            composed_img_shape = (height, width)
         
         # At the end all images are translated a "full translation step" and transformed by their h
         homographies = [translation * h if h is not None else None for h in homographies]
@@ -144,13 +144,14 @@ class BatchHomographyMatrixEstimator():
 
 class Dense_PointFinder():
     # Given an image and masks, put N points as a grid
-    def __init__(self, npoints=100):
+    def __init__(self, npoints=100, undefined_class=0):
         self.npoints = npoints
+        self.undefined_class = undefined_class
 
     def __call__(self, img, mask=None):
-        if mask == None : mask = np.ones(img.shape[:2])
+        if mask is None : mask = np.ones(img.shape[:2])
 
-        coordinates = np.argwhere(mask != 0)
+        coordinates = np.argwhere(mask != self.undefined_class)
         coordinates = coordinates[np.int16(np.linspace(0, len(coordinates) - 1, self.npoints))]
         
         return cv2.KeyPoint_convert(coordinates.tolist())
@@ -197,7 +198,11 @@ class RANSAC_MatrixEstimator():
         # kp is key_points; des is descriptors
 
         # least mean squeres matching of descriptors
-        matches = self.point_matcher(des1, des2)
+        try:
+            matches = self.point_matcher(des1, des2)
+        except Exception as e:
+            print(e)
+            matches = []
 
         # RANSAC iterative adjust of matches
         if len(matches) > self.min_match_count:

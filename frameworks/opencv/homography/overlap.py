@@ -9,7 +9,46 @@ import numpy as np
 from .utils import compute_path_homography, poly2mask, _image_idx_iterator
 
 
-def compute_overlap(x, H, n_matches):
+def compute_overlap(x, v_H):
+    assert len(v_H) == len(x)
+    
+    paired_overlaps = dict()
+
+    # The overlap is defined by the corners
+    def shape_gen(x):
+        for x_i in x: yield x_i.shape[:2]
+    corner_coordinates_original = [((0, 0), (x_c - 1, 0), (x_c - 1, y_c - 1), (0, y_c - 1)) for x_c, y_c in shape_gen(x)]
+
+    # the corners of the images are translated into the common plane coordinates
+    def translate_corners(corner_coordinates, h):
+        return cv2.perspectiveTransform(np.float32(corner_coordinates).reshape(-1,1,2), h).squeeze().round().astype(int)
+
+    corner_coordinates_common = [translate_corners(corner_coordinates, h) for corner_coordinates, h in zip(corner_coordinates_original, v_H)]
+
+    for base_idx, h in enumerate(v_H):
+        max_x, max_y = corner_coordinates_original[base_idx][2]
+        # One image is fully overlapped with itself
+        paired_overlaps.update({ (base_idx, base_idx) : np.ones( (max_x + 1, max_y + 1) ) })
+
+        h_inv = np.linalg.inv(h)
+        
+        for i in range(len(x)):
+            if i == base_idx : continue
+
+            i_on_common_coordiantes = corner_coordinates_common[i].copy()
+            i_on_base_coordinates = translate_corners(i_on_common_coordiantes, h_inv)
+
+            # and clipped in the base image shape
+            i_on_base_coordinates[ i_on_base_coordinates < 0] = 0
+            i_on_base_coordinates[ i_on_base_coordinates[:, 0] > max_x , 0] = max_x
+            i_on_base_coordinates[ i_on_base_coordinates[:, 1] > max_y , 1] = max_y
+
+            # this polygon defines the overlap (a binary mask is stored instead of the polygon)
+            paired_overlaps.update({ (base_idx, i) : poly2mask(i_on_base_coordinates.flatten().tolist(), max_x + 1, max_y + 1) })
+
+    return paired_overlaps
+
+def compute_overlap_from_paired_homographies(x, H, n_matches):
     # TODO: verbose option -> tqdm like fors
     paired_overlaps = dict()
 

@@ -7,7 +7,8 @@ from .utils import compute_dimensions
 def translate_mask(mask_orig, base_img, h):
     # The mask is cropped in order to fit the base_img window
 
-    translated_mask = cv2.warpPerspective(mask_orig, h, base_img.shape[:2], flags=cv2.INTER_LINEAR)
+    height, width = base_img.shape[:2]
+    translated_mask = cv2.warpPerspective(mask_orig, h, (width, height), flags=cv2.INTER_LINEAR)
 
     return translated_mask
 

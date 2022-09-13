@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 
 
 class TransformDataset(Dataset):
+    # TODO: change name to a more specified one (AlbuminationTransformDataset or similar, also it only consider images and masks)
 
     def __init__(self, dataset, transforms, drop_extra_params=False):
         self.dataset = dataset

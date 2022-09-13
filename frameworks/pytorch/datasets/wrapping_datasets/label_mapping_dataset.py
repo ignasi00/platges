@@ -25,7 +25,8 @@ class LabelListMappingDataset(Dataset):
         for _idx in self.indexs:
             base_output[_idx] = [self.labels_map.get(k, self.default_value) for k in base_output[_idx]]
         
-        return [base_output[0], *base_output[1:]]
+        #return [base_output[0], *base_output[1:]]
+        return base_output
     
     def __len__(self):
         return len(self.base_dataset)

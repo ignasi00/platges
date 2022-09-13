@@ -76,7 +76,7 @@ def compute_stiching(x, H, n_matches, base_idx=0, matrix_applier=None, blender=N
 
     return composed_img
 
-def make_stiching(x, h, base_idx=0, matrix_applier=None, blender=None):
+def make_stiching(x, h, base_idx=0, matrix_applier=None, blender=None, max_width=None, max_heignt=None):
 
     matrix_applier = matrix_applier or default_matrix_applier
     blender = blender or default_blender
@@ -90,6 +90,10 @@ def make_stiching(x, h, base_idx=0, matrix_applier=None, blender=None):
         max_x, min_x, max_y, min_y = compute_dimensions(composed_img, current_img, ht)
         width = int(max_x - min_x + 1)
         height = int(max_y - min_y + 1)
+
+        # TODO: what to cut and what to conserve
+        if max_width is not None and width > max_width : width = max_width
+        if max_heignt is not None and height > max_heignt : height = max_heignt
 
         composed_img = matrix_applier(composed_img, np.eye(3), (width, height))
         current_img = matrix_applier(current_img, ht, (width, height))

@@ -8,7 +8,6 @@ from torch.utils.data import Dataset
 from frameworks.pytorch.datasets.numpy_instances_dataset import NumpyInstancesDataset
 
 
-# Recordatori, TODO: It is not sure water:1 and sand:2 or viseversa, classes is a dict of "number -> name (aigua, sorra)"
 WATER_ID = 1
 SAND_ID = 2
 WATER_OR_SAND_ID = WATER_ID | SAND_ID # 1 | 2 == 3

@@ -7,6 +7,7 @@ from docopts.help_create_list import parse_args
 from preparation.lists.create_BCN_GPS_overlap_list import EXIF_homography_list
 from preparation.lists.create_argusNL_list import ArgusNL_list
 from preparation.lists.create_BCN_segmentation_list import platgesbcn_list
+from preparation.lists.create_correspondances_from_pto import process_pto
 from preparation.lists.utils.split_list import split_list, split_pandas
 
 
@@ -24,7 +25,7 @@ def save_list_seg(save_path, list_of_items):
 
 if __name__ == "__main__":
     args = parse_args(sys.argv)
-    (type_, data_root, outputs_root, probs, names, img_ext, seg_ext, cls_ext, th_time, longitude, latitude, min_imgs, verbose) = args
+    (type_, data_root, outputs_root, probs, names, img_ext, seg_ext, cls_ext, th_time, longitude, latitude, min_imgs, windows, windows_path, verbose) = args
 
     pathlib.Path(outputs_root).mkdir(parents=True, exist_ok=True)
 
@@ -52,3 +53,13 @@ if __name__ == "__main__":
         lists = split_list(list_of_lists, probs=probs)
         for l, n in zip(lists, names):
             save_list_GPS(f'{outputs_root}{n}', l)
+    
+    elif type_ == "correspondances":
+        pto_filepath = data_root # Previously the list where generated from a folder, now it is generated from a file
+        name = names[0]
+        correspondances_df, images_list = process_pto(pto_filepath, windows=windows, windows_root=windows_path)
+        list_of_lists = [images_list]
+
+        pathlib.Path(f'{outputs_root}/{name}/').mkdir(parents=True, exist_ok=True)
+        save_list_GPS(f'{outputs_root}/{name}/{name}.json', list_of_lists)
+        correspondances_df.to_csv(f'{outputs_root}/{name}/{name}.csv', header=False, index=False)

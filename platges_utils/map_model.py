@@ -83,21 +83,3 @@ class MapModel():
             f.create_dataset(HOMOGRAPHIES, data=np.asarray(homographies), shape=np.asarray(homographies).shape)
             f.create_dataset(GPS, data=np.asarray(gps), shape=np.asarray(gps).shape)
             f.attrs[NAME] = name
-
-def gps_search_map_model(gps, map_model_filename_list, limit=0):
-    gps = np.asarray(gps) # shape 2 x 1
-    assert gps.shape == (2, )
-
-    best = None
-    best_score = np.inf
-    for filename in map_model_filename_list:
-        with context_map_model(filename) as map_model:
-            model_gps = np.array(map_model.get_elements()[3]) # shape N x 2
-            score = np.min(np.linalg.norm(model_gps - gps, axis=1))
-            
-            if score < best_score:
-                best_score = score
-                best = filename
-        
-        if best_score <= limit : break
-    return best

@@ -37,7 +37,7 @@ def _list_metadata(folder_path, verbose=False):
                     img = Image(src)
                     if img.has_exif:
                         timestamp = (datetime.strptime(img.datetime_original, '%Y:%m:%d %H:%M:%S') - TIME_ZERO).total_seconds()
-                        gps_to_sec = lambda gps : 3600 * gps[0] + 60 * gps[1] + gps[0]
+                        gps_to_sec = lambda gps : gps[0] + gps[1] / 60 + gps[2] / 3600
                         
                         list_of_items.append({
                             PATH        : f.path,

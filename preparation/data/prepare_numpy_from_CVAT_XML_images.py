@@ -17,7 +17,8 @@ ANNOTATIONS_PATH    = f"{ANNOTATIONS_ROOT}/{ANNOTATIONS_NAME}"
 #IMAGES_ROOT         = "/mnt/c/Users/Ignasi/Downloads/platgesbcn2021_wide/images/useful/"
 IMAGES_ROOT         = "/mnt/c/Users/Ignasi/Downloads/platgesbcn2021_fine/images/useful/"
 
-INTEREST_LABELS = {"sorra", "aigua"}
+#INTEREST_LABELS = {"sorra", "aigua"}
+INTEREST_LABELS = {"sorra", "aigua", "sorra_gossos", "aigua_gossos"}
 
 
 def save_classes(classes, img_path):
@@ -35,13 +36,13 @@ def poly2mask(coordinates, width, height):
     mask = np.array(img)
     return mask
 
-def main(annotations_path, outputs_root, interest_labels=None):
-    classes = dict()
+def main(annotations_path, outputs_root, interest_labels=None, classes=None):
+    classes = classes or dict()
 
     tree = etree.parse(annotations_path)
     root = tree.getroot()
 
-    images = root[2:] # The first 2 elements are not annotations
+    images = root[2:] # The first 2 elements are not annotations ('.', '..')
     for image in images:
         width = int(image.get('width'))
         height = int(image.get('height'))

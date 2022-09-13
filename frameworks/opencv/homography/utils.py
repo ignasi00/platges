@@ -5,13 +5,13 @@ from PIL import Image, ImageDraw
 
 
 def poly2mask(coordinates, width, height):
-    img = Image.new('L', (width, height), 0)
+    img = Image.new('L', (height, width), 0)
     ImageDraw.Draw(img).polygon(coordinates, outline=1, fill=1)
     mask = np.array(img)
     return mask
 
-def compute_dimensions(composed_img, current_img, homography_matrix):
-    h, w = composed_img.shape[:2] # It can be a color image: H W C
+def compute_dimensions_from_shape(img_shape, current_img, homography_matrix):
+    h, w = img_shape[:2] # It can be a color image: H W C
     composed_corners = np.float32([ [0,0], [0,h-1], [w-1,h-1], [w-1,0] ]).reshape(-1,1,2).squeeze().astype(int)
 
     h, w = current_img.shape[:2]
@@ -29,6 +29,10 @@ def compute_dimensions(composed_img, current_img, homography_matrix):
     max_y = y_coord.max()
     min_y = y_coord.min()
 
+    return max_x, min_x, max_y, min_y
+
+def compute_dimensions(composed_img, current_img, homography_matrix):
+    max_x, min_x, max_y, min_y = compute_dimensions_from_shape(composed_img.shape, current_img, homography_matrix)
     return max_x, min_x, max_y, min_y
 
 def _image_idx_iterator(n_matches, base_idx):
